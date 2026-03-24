@@ -8,11 +8,16 @@ import com.gamelaunch.domain.model.Release
 import com.gamelaunch.domain.repository.GameRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneOffset
 import javax.inject.Inject
 import javax.inject.Singleton
+
+private val PLAIN_TEXT = "text/plain".toMediaType()
+private fun String.asIgdbBody() = trimIndent().toRequestBody(PLAIN_TEXT)
 
 @Singleton
 class GameRepositoryImpl @Inject constructor(
@@ -39,7 +44,7 @@ class GameRepositoryImpl @Inject constructor(
         gameDao.getWishlist().map { list -> list.map { it.toDomain() } }
 
     override suspend fun searchGames(query: String): List<Game> {
-        val dtos = igdbApi.searchGames(IgdbQueryBuilder.searchGames(query))
+        val dtos = igdbApi.searchGames(IgdbQueryBuilder.searchGames(query).asIgdbBody())
         return dtos.map { dto ->
             Game(
                 id = dto.id,
@@ -55,7 +60,7 @@ class GameRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getGameDetail(id: Int): Game? {
-        val dtos = igdbApi.getGameById(IgdbQueryBuilder.gameById(id))
+        val dtos = igdbApi.getGameById(IgdbQueryBuilder.gameById(id).asIgdbBody())
         return dtos.firstOrNull()?.let { dto ->
             Game(
                 id = dto.id,
@@ -83,27 +88,19 @@ class GameRepositoryImpl @Inject constructor(
         gameDao.isWishlisted(gameId) ?: false
 
     override suspend fun syncReleases() {
-        val now = LocalDate.now()
-        val query = IgdbQueryBuilder.releasesForMonth(now.year, now.monthValue)
-        val releaseDtos = igdbApi.getReleaseDates(query)
+        syncMonth(LocalDate.now())
+        syncMonth(LocalDate.now().plusMonths(1))
+    }
 
-        val gameEntities = releaseDtos.mapNotNull { it.game?.toGameEntity() }
-        val releaseEntities = releaseDtos.mapNotNull { it.toReleaseEntity() }
-
-        if (gameEntities.isNotEmpty()) {
-            gameDao.upsertGames(gameEntities)
-            gameDao.upsertReleases(releaseEntities)
-        }
-
-        // Also sync next month proactively
-        val next = now.plusMonths(1)
-        val nextQuery = IgdbQueryBuilder.releasesForMonth(next.year, next.monthValue)
-        val nextDtos = igdbApi.getReleaseDates(nextQuery)
-        val nextGames = nextDtos.mapNotNull { it.game?.toGameEntity() }
-        val nextReleases = nextDtos.mapNotNull { it.toReleaseEntity() }
-        if (nextGames.isNotEmpty()) {
-            gameDao.upsertGames(nextGames)
-            gameDao.upsertReleases(nextReleases)
+    private suspend fun syncMonth(date: LocalDate) {
+        val dtos = igdbApi.getReleaseDates(
+            IgdbQueryBuilder.releasesForMonth(date.year, date.monthValue).asIgdbBody()
+        )
+        val games = dtos.mapNotNull { it.game?.toGameEntity() }
+        val releases = dtos.mapNotNull { it.toReleaseEntity() }
+        if (games.isNotEmpty()) {
+            gameDao.upsertGames(games)
+            gameDao.upsertReleases(releases)
         }
     }
 

@@ -7,6 +7,7 @@ import com.gamelaunch.domain.model.Release
 import com.gamelaunch.domain.usecase.GetReleasesUseCase
 import com.gamelaunch.domain.repository.GameRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -32,12 +33,21 @@ class CalendarViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CalendarUiState())
     val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
 
+    private var loadJob: Job? = null
+
     init {
-        loadMonth(_uiState.value.currentMonth)
+        val month = _uiState.value.currentMonth
+        loadMonth(month)
+        // On first launch Room is empty — trigger a sync automatically
+        viewModelScope.launch {
+            val initial = getReleasesUseCase.forMonth(month.year, month.monthValue).first()
+            if (initial.isEmpty()) refresh()
+        }
     }
 
     private fun loadMonth(month: YearMonth) {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             getReleasesUseCase.forMonth(month.year, month.monthValue)
                 .catch { e -> _uiState.update { it.copy(error = e.message) } }
                 .collect { releases ->
