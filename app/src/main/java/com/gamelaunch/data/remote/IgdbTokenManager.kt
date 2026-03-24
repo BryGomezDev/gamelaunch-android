@@ -18,14 +18,21 @@ class IgdbTokenManager @Inject constructor(
     suspend fun getValidToken(): String = mutex.withLock {
         val now = System.currentTimeMillis() / 1000
         if (accessToken == null || now >= expiresAt - 60) {
-            Log.d("IgdbTokenManager", "Fetching new IGDB token")
+            Log.d(TAG, "Token missing or expiring — requesting new one. clientId=${BuildConfig.IGDB_CLIENT_ID.take(8)}…")
             val response = authApi.getToken(
                 clientId = BuildConfig.IGDB_CLIENT_ID,
                 clientSecret = BuildConfig.IGDB_CLIENT_SECRET
             )
             accessToken = response.accessToken
             expiresAt = now + response.expiresIn
+            Log.d(TAG, "Token obtained. type=${response.tokenType} expiresIn=${response.expiresIn}s token=${response.accessToken.take(8)}…")
+        } else {
+            Log.d(TAG, "Using cached token (valid for ${expiresAt - now}s). token=${accessToken!!.take(8)}…")
         }
         accessToken!!
+    }
+
+    companion object {
+        private const val TAG = "IgdbTokenManager"
     }
 }

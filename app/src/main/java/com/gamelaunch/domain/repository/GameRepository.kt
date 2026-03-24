@@ -15,4 +15,6 @@ interface GameRepository {
     suspend fun removeFromWishlist(gameId: Int)
     suspend fun isInWishlist(gameId: Int): Boolean
     suspend fun syncReleases()
+    /** Inserts hardcoded releases for the current month — bypasses IGDB entirely. */
+    suspend fun seedTestData()
 }

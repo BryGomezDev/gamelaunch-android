@@ -1,5 +1,6 @@
 package com.gamelaunch.presentation.calendar
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gamelaunch.domain.model.Platform
@@ -14,6 +15,8 @@ import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
 
+private const val TAG = "CalendarVM"
+
 data class CalendarUiState(
     val currentMonth: YearMonth = YearMonth.now(),
     val selectedDay: LocalDate? = null,
@@ -21,7 +24,8 @@ data class CalendarUiState(
     val selectedDayReleases: List<Release> = emptyList(),
     val platformFilter: Platform? = null,
     val isRefreshing: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val syncDebugInfo: String = "Iniciando…"
 )
 
 @HiltViewModel
@@ -38,10 +42,15 @@ class CalendarViewModel @Inject constructor(
     init {
         val month = _uiState.value.currentMonth
         loadMonth(month)
-        // On first launch Room is empty — trigger a sync automatically
         viewModelScope.launch {
             val initial = getReleasesUseCase.forMonth(month.year, month.monthValue).first()
-            if (initial.isEmpty()) refresh()
+            Log.d(TAG, "init: Room has ${initial.size} releases for current month")
+            if (initial.isEmpty()) {
+                _uiState.update { it.copy(syncDebugInfo = "Room vacío — iniciando sync…") }
+                refresh()
+            } else {
+                _uiState.update { it.copy(syncDebugInfo = "Room: ${initial.size} lanzamientos cargados") }
+            }
         }
     }
 
@@ -49,12 +58,17 @@ class CalendarViewModel @Inject constructor(
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
             getReleasesUseCase.forMonth(month.year, month.monthValue)
-                .catch { e -> _uiState.update { it.copy(error = e.message) } }
+                .catch { e ->
+                    Log.e(TAG, "Flow error: ${e.message}", e)
+                    _uiState.update { it.copy(error = e.message) }
+                }
                 .collect { releases ->
+                    Log.d(TAG, "Room Flow emitted ${releases.size} releases for ${month.year}/${month.monthValue}")
                     _uiState.update { state ->
                         val filtered = releases.applyFilter(state.platformFilter)
                         state.copy(
                             releases = filtered,
+                            syncDebugInfo = "${releases.size} lanzamientos en Room",
                             selectedDayReleases = state.selectedDay
                                 ?.let { day -> filtered.filter { it.date == day } }
                                 ?: emptyList()
@@ -92,11 +106,30 @@ class CalendarViewModel @Inject constructor(
 
     fun refresh() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isRefreshing = true, error = null) }
+            _uiState.update { it.copy(isRefreshing = true, error = null, syncDebugInfo = "Sincronizando con IGDB…") }
             try {
+                Log.d(TAG, "refresh: calling syncReleases()")
                 repository.syncReleases()
+                Log.d(TAG, "refresh: syncReleases() completed")
+                _uiState.update { it.copy(syncDebugInfo = "Sync OK — ${it.releases.size} lanzamientos") }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message) }
+                Log.e(TAG, "refresh: syncReleases() failed: ${e.message}", e)
+                _uiState.update { it.copy(error = "Sync error: ${e.message}", syncDebugInfo = "Error: ${e.javaClass.simpleName}") }
+            } finally {
+                _uiState.update { it.copy(isRefreshing = false) }
+            }
+        }
+    }
+
+    fun seedData() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true, error = null, syncDebugInfo = "Insertando datos de prueba…") }
+            try {
+                repository.seedTestData()
+                Log.d(TAG, "seedData: complete")
+            } catch (e: Exception) {
+                Log.e(TAG, "seedData failed: ${e.message}", e)
+                _uiState.update { it.copy(error = "Seed error: ${e.message}") }
             } finally {
                 _uiState.update { it.copy(isRefreshing = false) }
             }

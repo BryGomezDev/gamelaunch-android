@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
@@ -43,7 +44,17 @@ fun CalendarScreen(
     val state by viewModel.uiState.collectAsState()
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("GameLaunch") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("GameLaunch") },
+                actions = {
+                    // Debug: seed hardcoded data to verify UI works without API
+                    IconButton(onClick = viewModel::seedData) {
+                        Icon(Icons.Default.BugReport, contentDescription = "Seed test data")
+                    }
+                }
+            )
+        }
     ) { padding ->
         PullToRefreshBox(
             isRefreshing = state.isRefreshing,
@@ -53,6 +64,13 @@ fun CalendarScreen(
                 .padding(padding)
         ) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
+                // ── Debug info banner ──────────────────────────────────────
+                item {
+                    DebugInfoBanner(
+                        info = state.syncDebugInfo,
+                        releaseCount = state.releases.size
+                    )
+                }
                 item {
                     PlatformFilterRow(
                         selected = state.platformFilter,
@@ -345,6 +363,23 @@ private fun DayCell(
                 }
             }
         }
+    }
+}
+
+// ── Debug banner ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun DebugInfoBanner(info: String, releaseCount: Int) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = "DEBUG | $info | releases en UI: $releaseCount",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+        )
     }
 }
 
