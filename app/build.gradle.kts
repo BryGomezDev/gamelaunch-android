@@ -1,9 +1,17 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+}
+
+// Load local.properties — project.findProperty() does NOT read this file automatically
+val localProperties = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
 }
 
 android {
@@ -19,9 +27,9 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "IGDB_CLIENT_ID", "\"${project.findProperty("IGDB_CLIENT_ID") ?: ""}\"")
-        buildConfigField("String", "IGDB_CLIENT_SECRET", "\"${project.findProperty("IGDB_CLIENT_SECRET") ?: ""}\"")
-        buildConfigField("String", "SENTRY_DSN", "\"${project.findProperty("SENTRY_DSN") ?: ""}\"")
+        buildConfigField("String", "IGDB_CLIENT_ID",     "\"${localProperties["IGDB_CLIENT_ID"]     ?: ""}\"")
+        buildConfigField("String", "IGDB_CLIENT_SECRET", "\"${localProperties["IGDB_CLIENT_SECRET"] ?: ""}\"")
+        buildConfigField("String", "SENTRY_DSN",         "\"${localProperties["SENTRY_DSN"]         ?: ""}\"")
     }
 
     buildTypes {
