@@ -8,11 +8,12 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// Load local.properties — project.findProperty() does NOT read this file automatically
-val localProperties = Properties().apply {
-    val f = rootProject.file("local.properties")
-    if (f.exists()) f.inputStream().use { load(it) }
-}
+// Load local.properties — project.findProperty() does NOT read this file automatically.
+// Use getProperty() (the java.util.Properties string API), not the [] operator
+// which delegates to Hashtable.get() and can return null even when the key exists.
+val localProps = Properties()
+val localPropsFile = rootProject.file("local.properties")
+if (localPropsFile.exists()) localPropsFile.inputStream().use { localProps.load(it) }
 
 android {
     namespace = "com.gamelaunch"
@@ -27,9 +28,9 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "IGDB_CLIENT_ID",     "\"${localProperties["IGDB_CLIENT_ID"]     ?: ""}\"")
-        buildConfigField("String", "IGDB_CLIENT_SECRET", "\"${localProperties["IGDB_CLIENT_SECRET"] ?: ""}\"")
-        buildConfigField("String", "SENTRY_DSN",         "\"${localProperties["SENTRY_DSN"]         ?: ""}\"")
+        buildConfigField("String", "IGDB_CLIENT_ID",     "\"${localProps.getProperty("IGDB_CLIENT_ID",     "")}\"")
+        buildConfigField("String", "IGDB_CLIENT_SECRET", "\"${localProps.getProperty("IGDB_CLIENT_SECRET", "")}\"")
+        buildConfigField("String", "SENTRY_DSN",         "\"${localProps.getProperty("SENTRY_DSN",         "")}\"")
     }
 
     buildTypes {

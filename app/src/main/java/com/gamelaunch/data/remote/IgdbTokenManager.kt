@@ -19,6 +19,8 @@ class IgdbTokenManager @Inject constructor(
         val now = System.currentTimeMillis() / 1000
         if (accessToken == null || now >= expiresAt - 60) {
             Log.d(TAG, "Token missing or expiring — requesting new one. clientId=${BuildConfig.IGDB_CLIENT_ID.take(8)}…")
+            // Explicit credential check — if either field is empty, local.properties was not read correctly
+            Log.d("IGDB_DEBUG", "clientId='${BuildConfig.IGDB_CLIENT_ID}' secret='${BuildConfig.IGDB_CLIENT_SECRET}'")
             val response = authApi.getToken(
                 clientId = BuildConfig.IGDB_CLIENT_ID,
                 clientSecret = BuildConfig.IGDB_CLIENT_SECRET
