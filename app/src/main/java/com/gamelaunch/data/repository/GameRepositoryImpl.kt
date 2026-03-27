@@ -103,10 +103,12 @@ class GameRepositoryImpl @Inject constructor(
         val dtos = igdbApi.getReleaseDates(query.asIgdbBody())
         Log.d(TAG, "IGDB returned ${dtos.size} release_date DTOs")
         dtos.take(3).forEach { Log.d(TAG, "  sample dto: id=${it.id} date=${it.date} game=${it.game?.name} platform=${it.platform?.name}") }
-        val games = dtos.mapNotNull { it.game?.toGameEntity() }
+        val rawGames = dtos.mapNotNull { it.game?.toGameEntity() }
         val releases = dtos.mapNotNull { it.toReleaseEntity() }
-        Log.d(TAG, "Prepared ${games.size} game entities, ${releases.size} release entities")
-        if (games.isNotEmpty()) {
+        Log.d(TAG, "Prepared ${rawGames.size} game entities, ${releases.size} release entities")
+        if (rawGames.isNotEmpty()) {
+            val wishlisted = gameDao.getWishlistedIds().toHashSet()
+            val games = rawGames.map { if (it.id in wishlisted) it.copy(isWishlisted = true) else it }
             gameDao.upsertGames(games)
             gameDao.upsertReleases(releases)
             Log.d(TAG, "Saved to Room successfully")

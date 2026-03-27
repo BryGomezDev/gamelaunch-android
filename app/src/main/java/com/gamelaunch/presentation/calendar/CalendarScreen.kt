@@ -396,5 +396,4 @@ fun Platform.toColor(): Color = when (this) {
     Platform.PLAYSTATION_5, Platform.PLAYSTATION_4 -> Color(0xFF003791)
     Platform.XBOX_SERIES, Platform.XBOX_ONE -> Color(0xFF107C10)
     Platform.NINTENDO_SWITCH -> Color(0xFFE4000F)
-    Platform.PC_EPIC -> Color(0xFF2F3136)
 }

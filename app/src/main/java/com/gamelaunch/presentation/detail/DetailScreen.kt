@@ -1,6 +1,8 @@
 package com.gamelaunch.presentation.detail
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
@@ -53,6 +55,7 @@ fun DetailScreen(
                     modifier = Modifier
                         .padding(padding)
                         .padding(16.dp)
+                        .verticalScroll(rememberScrollState())
                 ) {
                     AsyncImage(
                         model = game.coverUrl,

@@ -19,6 +19,9 @@ interface GameDao {
     @Query("SELECT * FROM games WHERE isWishlisted = 1")
     fun getWishlist(): Flow<List<GameEntity>>
 
+    @Query("SELECT id FROM games WHERE isWishlisted = 1")
+    suspend fun getWishlistedIds(): List<Int>
+
     @Query("UPDATE games SET isWishlisted = 1 WHERE id = :id")
     suspend fun addToWishlist(id: Int)
 
