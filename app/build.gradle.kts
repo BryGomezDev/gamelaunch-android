@@ -59,6 +59,10 @@ android {
     }
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
@@ -110,6 +114,20 @@ dependencies {
     // DataStore
     implementation(libs.datastore.preferences)
 
+    // Sentry
+    implementation(libs.sentry.android)
+
     // Coroutines
     implementation(libs.coroutines.android)
+
+    // Unit tests
+    testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.turbine)
+    testImplementation(libs.coroutines.test)
+
+    // Instrumented tests (Room)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.room.testing)
+    androidTestImplementation(libs.coroutines.test)
 }

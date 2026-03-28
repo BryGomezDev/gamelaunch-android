@@ -13,6 +13,11 @@ coil = "2.6.0"
 workmanager = "2.9.0"
 datastore = "1.1.1"
 coroutines = "1.8.1"
+sentry = "7.14.0"
+junit = "4.13.2"
+mockk = "1.13.12"
+turbine = "1.1.0"
+androidx-test-ext = "1.2.1"
 hilt-work = "1.2.0"
 hilt-navigation-compose = "1.2.0"
 core-ktx = "1.13.1"
@@ -73,6 +78,17 @@ datastore-preferences = { group = "androidx.datastore", name = "datastore-prefer
 
 # Coroutines
 coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+
+# Sentry
+sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentry" }
+
+# Testing
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
+androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-test-ext" }
+room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

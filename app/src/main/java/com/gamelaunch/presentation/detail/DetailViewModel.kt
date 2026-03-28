@@ -7,6 +7,7 @@ import com.gamelaunch.domain.repository.GameRepository
 import com.gamelaunch.domain.usecase.WishlistUseCase
 import com.gamelaunch.notification.NotificationScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.sentry.Sentry
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -31,11 +32,16 @@ class DetailViewModel @Inject constructor(
 
     fun loadGame(gameId: Int) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            val game = repository.getGameDetail(gameId)
-            val wishlisted = repository.isInWishlist(gameId)
-            _uiState.update {
-                it.copy(game = game, isWishlisted = wishlisted, isLoading = false)
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            try {
+                val game = repository.getGameDetail(gameId)
+                val wishlisted = repository.isInWishlist(gameId)
+                _uiState.update {
+                    it.copy(game = game, isWishlisted = wishlisted, isLoading = false)
+                }
+            } catch (e: Exception) {
+                Sentry.captureException(e)
+                _uiState.update { it.copy(isLoading = false, error = "No se pudo cargar el juego: ${e.message}") }
             }
         }
     }

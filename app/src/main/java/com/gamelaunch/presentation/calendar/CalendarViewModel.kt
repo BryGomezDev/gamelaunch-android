@@ -1,13 +1,18 @@
 package com.gamelaunch.presentation.calendar
 
 import android.util.Log
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gamelaunch.domain.model.Platform
+import com.gamelaunch.domain.model.Region
 import com.gamelaunch.domain.model.Release
 import com.gamelaunch.domain.usecase.GetReleasesUseCase
 import com.gamelaunch.domain.repository.GameRepository
+import com.gamelaunch.presentation.settings.SettingsViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.sentry.Sentry
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -23,6 +28,7 @@ data class CalendarUiState(
     val releases: List<Release> = emptyList(),
     val selectedDayReleases: List<Release> = emptyList(),
     val platformFilter: Platform? = null,
+    val regionFilter: Region? = null,
     val isRefreshing: Boolean = false,
     val error: String? = null,
     val syncDebugInfo: String = "Iniciando…"
@@ -31,27 +37,30 @@ data class CalendarUiState(
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
     private val getReleasesUseCase: GetReleasesUseCase,
-    private val repository: GameRepository
+    private val repository: GameRepository,
+    private val dataStore: DataStore<Preferences>
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CalendarUiState())
     val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
 
     private var loadJob: Job? = null
+    private val syncedMonths = mutableSetOf<YearMonth>()
 
     init {
+        // Read preferred region from settings and apply as default filter
+        viewModelScope.launch {
+            val prefs = dataStore.data.first()
+            val preferredRegion = Region.fromId(
+                prefs[SettingsViewModel.REGION_KEY] ?: Region.WORLDWIDE.igdbId
+            )
+            // Only set filter if user has chosen a specific region (not WORLDWIDE = show all)
+            val initialRegion = if (preferredRegion == Region.WORLDWIDE) null else preferredRegion
+            _uiState.update { it.copy(regionFilter = initialRegion) }
+        }
         val month = _uiState.value.currentMonth
         loadMonth(month)
-        viewModelScope.launch {
-            val initial = getReleasesUseCase.forMonth(month.year, month.monthValue).first()
-            Log.d(TAG, "init: Room has ${initial.size} releases for current month")
-            if (initial.isEmpty()) {
-                _uiState.update { it.copy(syncDebugInfo = "Room vacío — iniciando sync…") }
-                refresh()
-            } else {
-                _uiState.update { it.copy(syncDebugInfo = "Room: ${initial.size} lanzamientos cargados") }
-            }
-        }
+        fetchMonthIfEmpty(month)
     }
 
     private fun loadMonth(month: YearMonth) {
@@ -63,9 +72,8 @@ class CalendarViewModel @Inject constructor(
                     _uiState.update { it.copy(error = e.message) }
                 }
                 .collect { releases ->
-                    Log.d(TAG, "Room Flow emitted ${releases.size} releases for ${month.year}/${month.monthValue}")
                     _uiState.update { state ->
-                        val filtered = releases.applyFilter(state.platformFilter)
+                        val filtered = releases.applyFilters(state.platformFilter, state.regionFilter)
                         state.copy(
                             releases = filtered,
                             syncDebugInfo = "${releases.size} lanzamientos en Room",
@@ -81,6 +89,30 @@ class CalendarViewModel @Inject constructor(
     fun onMonthChange(month: YearMonth) {
         _uiState.update { it.copy(currentMonth = month, selectedDay = null) }
         loadMonth(month)
+        fetchMonthIfEmpty(month)
+    }
+
+    private fun fetchMonthIfEmpty(month: YearMonth) {
+        if (month in syncedMonths) return
+        viewModelScope.launch {
+            val cached = getReleasesUseCase.forMonth(month.year, month.monthValue).first()
+            if (cached.isEmpty()) {
+                _uiState.update { it.copy(isRefreshing = true, error = null, syncDebugInfo = "Cargando $month…") }
+                try {
+                    repository.syncMonth(month.year, month.monthValue)
+                    syncedMonths += month
+                } catch (e: Exception) {
+                    Sentry.captureException(e)
+                    Log.e(TAG, "fetchMonthIfEmpty $month failed: ${e.message}", e)
+                    _uiState.update { it.copy(error = "Error al cargar mes: ${e.message}", syncDebugInfo = "Error: ${e.javaClass.simpleName}") }
+                } finally {
+                    _uiState.update { it.copy(isRefreshing = false) }
+                }
+            } else {
+                syncedMonths += month
+                _uiState.update { it.copy(syncDebugInfo = "Room: ${cached.size} lanzamientos") }
+            }
+        }
     }
 
     fun onDaySelected(date: LocalDate) {
@@ -94,26 +126,43 @@ class CalendarViewModel @Inject constructor(
 
     fun onPlatformFilter(platform: Platform?) {
         _uiState.update { state ->
-            val filtered = state.releases.applyFilter(platform)
+            val filtered = state.releases.applyFilters(platform, state.regionFilter)
             state.copy(
                 platformFilter = platform,
+                releases = filtered,
                 selectedDayReleases = state.selectedDay
                     ?.let { day -> filtered.filter { it.date == day } }
                     ?: emptyList()
             )
         }
+        loadMonth(_uiState.value.currentMonth)
+    }
+
+    fun onRegionFilter(region: Region?) {
+        _uiState.update { state ->
+            val filtered = state.releases.applyFilters(state.platformFilter, region)
+            state.copy(
+                regionFilter = region,
+                releases = filtered,
+                selectedDayReleases = state.selectedDay
+                    ?.let { day -> filtered.filter { it.date == day } }
+                    ?: emptyList()
+            )
+        }
+        loadMonth(_uiState.value.currentMonth)
     }
 
     fun refresh() {
+        val month = _uiState.value.currentMonth
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true, error = null, syncDebugInfo = "Sincronizando con IGDB…") }
             try {
-                Log.d(TAG, "refresh: calling syncReleases()")
-                repository.syncReleases()
-                Log.d(TAG, "refresh: syncReleases() completed")
-                _uiState.update { it.copy(syncDebugInfo = "Sync OK — ${it.releases.size} lanzamientos") }
+                repository.syncMonth(month.year, month.monthValue)
+                syncedMonths += month
+                _uiState.update { it.copy(syncDebugInfo = "Sync OK — ${_uiState.value.releases.size} lanzamientos") }
             } catch (e: Exception) {
-                Log.e(TAG, "refresh: syncReleases() failed: ${e.message}", e)
+                Sentry.captureException(e)
+                Log.e(TAG, "refresh failed: ${e.message}", e)
                 _uiState.update { it.copy(error = "Sync error: ${e.message}", syncDebugInfo = "Error: ${e.javaClass.simpleName}") }
             } finally {
                 _uiState.update { it.copy(isRefreshing = false) }
@@ -126,7 +175,6 @@ class CalendarViewModel @Inject constructor(
             _uiState.update { it.copy(isRefreshing = true, error = null, syncDebugInfo = "Insertando datos de prueba…") }
             try {
                 repository.seedTestData()
-                Log.d(TAG, "seedData: complete")
             } catch (e: Exception) {
                 Log.e(TAG, "seedData failed: ${e.message}", e)
                 _uiState.update { it.copy(error = "Seed error: ${e.message}") }
@@ -136,6 +184,10 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
-    private fun List<Release>.applyFilter(platform: Platform?) =
-        if (platform == null) this else filter { it.platform == platform }
+    private fun List<Release>.applyFilters(platform: Platform?, region: Region?): List<Release> {
+        var result = this
+        if (platform != null) result = result.filter { it.platform == platform }
+        if (region != null) result = result.filter { it.region == region || it.region == Region.WORLDWIDE }
+        return result
+    }
 }
