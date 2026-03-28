@@ -20,8 +20,8 @@ object IgdbQueryBuilder {
         return "fields id,date,region,platform.id,platform.name,game.id,game.name,game.cover.url,game.genres.name,game.total_rating,game.summary; where date >= $startEpoch & date <= $endEpoch & platform = ($supportedPlatformIds); limit 500;"
     }
 
-    fun searchGames(query: String): String =
-        "fields id,name,cover.url,genres.name,total_rating,summary; search \"$query\"; limit 20;"
+    fun searchGames(query: String, offset: Int = 0): String =
+        "fields id,name,cover.url,genres.name,total_rating,summary; search \"$query\"; limit 20; offset $offset;"
 
     fun gameById(id: Int): String =
         "fields id,name,cover.url,genres.name,total_rating,summary; where id = $id; limit 1;"

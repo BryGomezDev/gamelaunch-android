@@ -9,7 +9,7 @@ import com.gamelaunch.data.local.entity.ReleaseEntity
 @Database(
     entities = [GameEntity::class, ReleaseEntity::class],
     version = 1,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class GameDatabase : RoomDatabase() {
     abstract fun gameDao(): GameDao

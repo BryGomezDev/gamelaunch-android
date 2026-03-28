@@ -1,5 +1,6 @@
 package com.gamelaunch.di
 
+import com.gamelaunch.BuildConfig
 import com.gamelaunch.data.remote.IgdbApi
 import com.gamelaunch.data.remote.IgdbAuthApi
 import com.gamelaunch.data.remote.IgdbAuthInterceptor
@@ -30,7 +31,8 @@ object NetworkModule {
     @Singleton
     fun provideLoggingInterceptor(): HttpLoggingInterceptor =
         HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC
+                    else HttpLoggingInterceptor.Level.NONE
         }
 
     // Auth client — no IGDB auth headers (used to fetch the token itself)

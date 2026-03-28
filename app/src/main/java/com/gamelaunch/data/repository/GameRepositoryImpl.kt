@@ -10,6 +10,7 @@ import com.gamelaunch.domain.model.Game
 import com.gamelaunch.domain.model.Platform
 import com.gamelaunch.domain.model.Release
 import com.gamelaunch.domain.repository.GameRepository
+import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import okhttp3.MediaType.Companion.toMediaType
@@ -48,8 +49,8 @@ class GameRepositoryImpl @Inject constructor(
     override fun getWishlist(): Flow<List<Game>> =
         gameDao.getWishlist().map { list -> list.map { it.toDomain() } }
 
-    override suspend fun searchGames(query: String): List<Game> {
-        val dtos = igdbApi.searchGames(IgdbQueryBuilder.searchGames(query).asIgdbBody())
+    override suspend fun searchGames(query: String, offset: Int): List<Game> {
+        val dtos = igdbApi.searchGames(IgdbQueryBuilder.searchGames(query, offset).asIgdbBody())
         return dtos.map { dto ->
             Game(
                 id = dto.id,
@@ -65,6 +66,18 @@ class GameRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getGameDetail(id: Int): Game? {
+        // Try Room first — it has correct release dates from the calendar sync
+        val cached = gameDao.getGameById(id)
+        if (cached != null) {
+            val releaseEpoch = gameDao.getEarliestReleaseEpoch(id)
+            val releaseDate = releaseEpoch?.let {
+                Instant.ofEpochSecond(it).atZone(ZoneOffset.UTC).toLocalDate()
+            } ?: LocalDate.now()
+            val platforms = gameDao.getPlatformIdsForGame(id)
+                .mapNotNull { pid -> Platform.entries.firstOrNull { it.igdbId == pid } }
+            return cached.toDomain(releaseDate).copy(platforms = platforms)
+        }
+        // Fall back to API if not in Room (e.g. came from search)
         val dtos = igdbApi.getGameById(IgdbQueryBuilder.gameById(id).asIgdbBody())
         return dtos.firstOrNull()?.let { dto ->
             Game(
@@ -81,8 +94,7 @@ class GameRepositoryImpl @Inject constructor(
     }
 
     override suspend fun addToWishlist(game: Game) {
-        gameDao.upsertGames(listOf(game.toEntity()))
-        gameDao.addToWishlist(game.id)
+        gameDao.upsertGameAndWishlist(game.toEntity())
     }
 
     override suspend fun removeFromWishlist(gameId: Int) {
@@ -97,23 +109,23 @@ class GameRepositoryImpl @Inject constructor(
         syncMonth(LocalDate.now().plusMonths(1))
     }
 
+    override suspend fun syncMonth(year: Int, month: Int) {
+        syncMonth(LocalDate.of(year, month, 1))
+    }
+
     private suspend fun syncMonth(date: LocalDate) {
         val query = IgdbQueryBuilder.releasesForMonth(date.year, date.monthValue)
-        Log.d(TAG, "syncMonth ${date.year}/${date.monthValue} — query: $query")
         val dtos = igdbApi.getReleaseDates(query.asIgdbBody())
-        Log.d(TAG, "IGDB returned ${dtos.size} release_date DTOs")
-        dtos.take(3).forEach { Log.d(TAG, "  sample dto: id=${it.id} date=${it.date} game=${it.game?.name} platform=${it.platform?.name}") }
         val rawGames = dtos.mapNotNull { it.game?.toGameEntity() }
         val releases = dtos.mapNotNull { it.toReleaseEntity() }
-        Log.d(TAG, "Prepared ${rawGames.size} game entities, ${releases.size} release entities")
         if (rawGames.isNotEmpty()) {
             val wishlisted = gameDao.getWishlistedIds().toHashSet()
             val games = rawGames.map { if (it.id in wishlisted) it.copy(isWishlisted = true) else it }
             gameDao.upsertGames(games)
             gameDao.upsertReleases(releases)
-            Log.d(TAG, "Saved to Room successfully")
+            Log.d(TAG, "syncMonth ${date.year}/${date.monthValue}: saved ${rawGames.size} games, ${releases.size} releases")
         } else {
-            Log.w(TAG, "No games to save — API returned ${dtos.size} DTOs but all had null game field")
+            Log.w(TAG, "syncMonth ${date.year}/${date.monthValue}: API returned ${dtos.size} DTOs but no valid game data")
         }
     }
 

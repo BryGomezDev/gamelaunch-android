@@ -5,9 +5,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -20,6 +22,7 @@ fun SearchScreen(
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    val showHistory = state.query.isEmpty() && state.recentSearches.isNotEmpty()
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Buscar juegos") }) }
@@ -38,7 +41,35 @@ fun SearchScreen(
             if (state.isLoading) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
+            state.error?.let { error ->
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
             LazyColumn {
+                if (showHistory) {
+                    item {
+                        Text(
+                            "Búsquedas recientes",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                    items(state.recentSearches) { query ->
+                        ListItem(
+                            headlineContent = { Text(query) },
+                            leadingContent = {
+                                Icon(Icons.Default.History, contentDescription = null)
+                            },
+                            modifier = Modifier.clickable { viewModel.onHistorySelected(query) }
+                        )
+                    }
+                    item { HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp)) }
+                }
                 items(state.results) { game ->
                     ListItem(
                         headlineContent = { Text(game.name) },
@@ -52,6 +83,22 @@ fun SearchScreen(
                         },
                         modifier = Modifier.clickable { onGameClick(game.id) }
                     )
+                }
+                if (state.canLoadMore) {
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (state.isLoadingMore) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            } else {
+                                TextButton(onClick = viewModel::loadMore) {
+                                    Text("Cargar más")
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -28,7 +28,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.gamelaunch.BuildConfig
 import com.gamelaunch.domain.model.Platform
+import io.sentry.Sentry
+import com.gamelaunch.domain.model.Region
 import com.gamelaunch.domain.model.Release
 import java.time.LocalDate
 import java.time.YearMonth
@@ -48,9 +51,10 @@ fun CalendarScreen(
             TopAppBar(
                 title = { Text("GameLaunch") },
                 actions = {
-                    // Debug: seed hardcoded data to verify UI works without API
-                    IconButton(onClick = viewModel::seedData) {
-                        Icon(Icons.Default.BugReport, contentDescription = "Seed test data")
+                    if (BuildConfig.DEBUG) {
+                        IconButton(onClick = viewModel::seedData) {
+                            Icon(Icons.Default.BugReport, contentDescription = "Seed test data")
+                        }
                     }
                 }
             )
@@ -64,17 +68,36 @@ fun CalendarScreen(
                 .padding(padding)
         ) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
-                // ── Debug info banner ──────────────────────────────────────
-                item {
-                    DebugInfoBanner(
-                        info = state.syncDebugInfo,
-                        releaseCount = state.releases.size
-                    )
+                if (BuildConfig.DEBUG) {
+                    item {
+                        DebugInfoBanner(
+                            info = state.syncDebugInfo,
+                            releaseCount = state.releases.size
+                        )
+                    }
+                    item {
+                        Button(
+                            onClick = {
+                                Sentry.captureMessage("Test manual desde GameLaunch")
+                                throw RuntimeException("Test crash de Sentry — puedes ignorar esto")
+                            },
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp, vertical = 4.dp)
+                        ) {
+                            Text("Test Sentry")
+                        }
+                    }
                 }
                 item {
                     PlatformFilterRow(
                         selected = state.platformFilter,
                         onSelect = viewModel::onPlatformFilter
+                    )
+                }
+                item {
+                    RegionFilterRow(
+                        selected = state.regionFilter,
+                        onSelect = viewModel::onRegionFilter
                     )
                 }
                 item {
@@ -227,6 +250,35 @@ private fun PlatformFilterRow(selected: Platform?, onSelect: (Platform?) -> Unit
                 selected = selected == platform,
                 onClick = { onSelect(platform) },
                 label = { Text(platform.displayName) }
+            )
+        }
+    }
+}
+
+// ── Region filter row ─────────────────────────────────────────────────────────
+
+@Composable
+private fun RegionFilterRow(selected: Region?, onSelect: (Region?) -> Unit) {
+    val regions = listOf(
+        Region.WORLDWIDE, Region.EUROPE, Region.NORTH_AMERICA,
+        Region.JAPAN, Region.ASIA, Region.AUSTRALIA, Region.BRAZIL, Region.KOREA
+    )
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item {
+            FilterChip(
+                selected = selected == null,
+                onClick = { onSelect(null) },
+                label = { Text("Todas") }
+            )
+        }
+        items(regions) { region ->
+            FilterChip(
+                selected = selected == region,
+                onClick = { onSelect(region) },
+                label = { Text(region.displayName) }
             )
         }
     }

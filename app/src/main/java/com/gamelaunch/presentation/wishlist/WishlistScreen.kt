@@ -1,9 +1,13 @@
 package com.gamelaunch.presentation.wishlist
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,19 +36,53 @@ fun WishlistScreen(
             }
         } else {
             LazyColumn(modifier = Modifier.padding(padding)) {
-                items(wishlist) { game ->
-                    ListItem(
-                        headlineContent = { Text(game.name) },
-                        supportingContent = { Text(game.releaseDate.toString()) },
-                        leadingContent = {
-                            AsyncImage(
-                                model = game.coverUrl,
-                                contentDescription = game.name,
-                                modifier = Modifier.size(48.dp)
-                            )
-                        },
-                        modifier = Modifier.clickable { onGameClick(game.id) }
+                items(wishlist, key = { it.id }) { game ->
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = { value ->
+                            if (value == SwipeToDismissBoxValue.EndToStart) {
+                                viewModel.removeFromWishlist(game.id)
+                                true
+                            } else false
+                        }
                     )
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        enableDismissFromStartToEnd = false,
+                        backgroundContent = {
+                            val color by animateColorAsState(
+                                if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart)
+                                    MaterialTheme.colorScheme.errorContainer
+                                else MaterialTheme.colorScheme.surfaceVariant,
+                                label = "swipe_bg"
+                            )
+                            Box(
+                                modifier = Modifier.fillMaxSize().background(color),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Eliminar",
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.padding(end = 20.dp)
+                                )
+                            }
+                        }
+                    ) {
+                        ListItem(
+                            headlineContent = { Text(game.name) },
+                            supportingContent = { Text(game.releaseDate.toString()) },
+                            leadingContent = {
+                                AsyncImage(
+                                    model = game.coverUrl,
+                                    contentDescription = game.name,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                            },
+                            modifier = Modifier
+                                .background(MaterialTheme.colorScheme.surface)
+                                .clickable { onGameClick(game.id) }
+                        )
+                    }
                 }
             }
         }

@@ -16,11 +16,26 @@ interface GameDao {
     @Query("SELECT * FROM games WHERE id = :id")
     suspend fun getGameById(id: Int): GameEntity?
 
+    @Query("SELECT MIN(dateEpoch) FROM releases WHERE gameId = :gameId")
+    suspend fun getEarliestReleaseEpoch(gameId: Int): Long?
+
+    @Query("SELECT DISTINCT platformId FROM releases WHERE gameId = :gameId")
+    suspend fun getPlatformIdsForGame(gameId: Int): List<Int>
+
     @Query("SELECT * FROM games WHERE isWishlisted = 1")
     fun getWishlist(): Flow<List<GameEntity>>
 
     @Query("SELECT id FROM games WHERE isWishlisted = 1")
     suspend fun getWishlistedIds(): List<Int>
+
+    @Transaction
+    suspend fun upsertGameAndWishlist(game: GameEntity) {
+        upsertGames(listOf(game))
+        setWishlisted(game.id, true)
+    }
+
+    @Query("UPDATE games SET isWishlisted = :value WHERE id = :id")
+    suspend fun setWishlisted(id: Int, value: Boolean)
 
     @Query("UPDATE games SET isWishlisted = 1 WHERE id = :id")
     suspend fun addToWishlist(id: Int)

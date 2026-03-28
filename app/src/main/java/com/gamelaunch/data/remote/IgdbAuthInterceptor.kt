@@ -1,6 +1,7 @@
 package com.gamelaunch.data.remote
 
 import com.gamelaunch.BuildConfig
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Response
@@ -12,7 +13,7 @@ class IgdbAuthInterceptor @Inject constructor(
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val token = try {
-            runBlocking { tokenManager.getValidToken() }
+            runBlocking(Dispatchers.IO) { tokenManager.getValidToken() }
         } catch (e: Exception) {
             throw IOException("Failed to obtain IGDB token: ${e.message}", e)
         }

@@ -1,5 +1,7 @@
 package com.gamelaunch.presentation.navigation
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -22,9 +24,23 @@ sealed class Screen(val route: String) {
     }
 }
 
+private val tabRoutes = setOf(
+    Screen.Calendar.route,
+    Screen.Search.route,
+    Screen.Wishlist.route,
+    Screen.Settings.route
+)
+
 @Composable
 fun AppNavGraph(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = Screen.Calendar.route) {
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Calendar.route,
+        enterTransition = { fadeIn(tween(200)) },
+        exitTransition = { fadeOut(tween(200)) },
+        popEnterTransition = { fadeIn(tween(200)) },
+        popExitTransition = { fadeOut(tween(200)) }
+    ) {
         composable(Screen.Calendar.route) {
             CalendarScreen(onGameClick = { navController.navigate(Screen.Detail.createRoute(it)) })
         }
@@ -39,7 +55,19 @@ fun AppNavGraph(navController: NavHostController) {
         }
         composable(
             route = Screen.Detail.route,
-            arguments = listOf(navArgument("gameId") { type = NavType.IntType })
+            arguments = listOf(navArgument("gameId") { type = NavType.IntType }),
+            enterTransition = {
+                slideInHorizontally(tween(300)) { it } + fadeIn(tween(300))
+            },
+            exitTransition = {
+                slideOutHorizontally(tween(300)) { it } + fadeOut(tween(300))
+            },
+            popEnterTransition = {
+                slideInHorizontally(tween(300)) { -it } + fadeIn(tween(300))
+            },
+            popExitTransition = {
+                slideOutHorizontally(tween(300)) { it } + fadeOut(tween(300))
+            }
         ) { backStack ->
             val gameId = backStack.arguments!!.getInt("gameId")
             DetailScreen(gameId = gameId, onBack = { navController.popBackStack() })
