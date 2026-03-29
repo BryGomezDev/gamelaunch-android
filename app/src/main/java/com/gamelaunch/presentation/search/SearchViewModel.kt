@@ -26,8 +26,21 @@ data class SearchUiState(
     val isLoadingMore: Boolean = false,
     val canLoadMore: Boolean = false,
     val recentSearches: List<String> = emptyList(),
-    val error: String? = null
-)
+    val error: String? = null,
+    val genreFilter: String? = null,
+    val gameModeFilter: String? = null
+) {
+    val availableGenres: List<String>
+        get() = results.flatMap { it.genres }.distinct().sorted()
+
+    val availableGameModes: List<String>
+        get() = results.flatMap { it.gameModes }.distinct().sorted()
+
+    val filteredResults: List<Game>
+        get() = results
+            .filter { genreFilter == null || genreFilter in it.genres }
+            .filter { gameModeFilter == null || gameModeFilter in it.gameModes }
+}
 
 @OptIn(FlowPreview::class)
 @HiltViewModel
@@ -79,7 +92,7 @@ class SearchViewModel @Inject constructor(
     fun onQueryChange(query: String) {
         _uiState.update { it.copy(query = query) }
         queryFlow.value = query
-        if (query.isEmpty()) _uiState.update { it.copy(results = emptyList(), canLoadMore = false) }
+        if (query.isEmpty()) _uiState.update { it.copy(results = emptyList(), canLoadMore = false, genreFilter = null, gameModeFilter = null) }
     }
 
     fun onHistorySelected(query: String) {
@@ -109,6 +122,9 @@ class SearchViewModel @Inject constructor(
             }
         }
     }
+
+    fun onGenreFilter(genre: String?) { _uiState.update { it.copy(genreFilter = genre) } }
+    fun onGameModeFilter(mode: String?) { _uiState.update { it.copy(gameModeFilter = mode) } }
 
     private fun addToHistory(query: String) {
         val updated = (listOf(query) + _uiState.value.recentSearches.filter { it != query })

@@ -11,18 +11,20 @@ object IgdbQueryBuilder {
         .distinct()
         .joinToString(",")
 
+    // Calendar sync — adds game_modes and themes for card badges
     fun releasesForMonth(year: Int, month: Int): String {
         val start = LocalDate.of(year, month, 1)
         val end = start.plusMonths(1).minusDays(1)
         val startEpoch = start.atStartOfDay(ZoneOffset.UTC).toEpochSecond()
         val endEpoch = end.atTime(23, 59, 59).atZone(ZoneOffset.UTC).toEpochSecond()
-        // Single-line where clause — safer with all Apicalypse parser versions
-        return "fields id,date,region,platform.id,platform.name,game.id,game.name,game.cover.url,game.genres.name,game.total_rating,game.summary; where date >= $startEpoch & date <= $endEpoch & platform = ($supportedPlatformIds); limit 500;"
+        return "fields id,date,region,platform.id,platform.name,game.id,game.name,game.cover.url,game.genres.name,game.total_rating,game.summary,game.game_modes.name,game.themes.name; where date >= $startEpoch & date <= $endEpoch & platform = ($supportedPlatformIds); limit 500;"
     }
 
+    // Search — includes modes and themes for result badges
     fun searchGames(query: String, offset: Int = 0): String =
-        "fields id,name,cover.url,genres.name,total_rating,summary,first_release_date; search \"$query\"; limit 20; offset $offset;"
+        "fields id,name,cover.url,genres.name,total_rating,summary,first_release_date,game_modes.name,themes.name; search \"$query\"; limit 20; offset $offset;"
 
+    // Detail — full enriched data
     fun gameById(id: Int): String =
-        "fields id,name,cover.url,genres.name,total_rating,summary,first_release_date; where id = $id; limit 1;"
+        "fields id,name,cover.url,genres.name,total_rating,summary,first_release_date,game_modes.name,themes.name,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,websites.url,websites.category,screenshots.url; where id = $id; limit 1;"
 }

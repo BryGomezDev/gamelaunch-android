@@ -20,8 +20,38 @@ data class GameDto(
     @Json(name = "genres") val genres: List<GenreDto>?,
     @Json(name = "total_rating") val totalRating: Double?,
     @Json(name = "summary") val summary: String?,
-    @Json(name = "first_release_date") val firstReleaseDate: Long? = null
+    @Json(name = "first_release_date") val firstReleaseDate: Long? = null,
+    @Json(name = "game_modes") val gameModes: List<GameModeDto>? = null,
+    @Json(name = "themes") val themes: List<ThemeDto>? = null,
+    @Json(name = "involved_companies") val involvedCompanies: List<InvolvedCompanyDto>? = null,
+    @Json(name = "websites") val websites: List<WebsiteDto>? = null,
+    @Json(name = "screenshots") val screenshots: List<ScreenshotDto>? = null
 )
+
+@JsonClass(generateAdapter = true)
+data class GameModeDto(@Json(name = "name") val name: String?)
+
+@JsonClass(generateAdapter = true)
+data class ThemeDto(@Json(name = "name") val name: String?)
+
+@JsonClass(generateAdapter = true)
+data class CompanyDto(@Json(name = "name") val name: String?)
+
+@JsonClass(generateAdapter = true)
+data class InvolvedCompanyDto(
+    @Json(name = "company") val company: CompanyDto?,
+    @Json(name = "developer") val developer: Boolean?,
+    @Json(name = "publisher") val publisher: Boolean?
+)
+
+@JsonClass(generateAdapter = true)
+data class WebsiteDto(
+    @Json(name = "url") val url: String?,
+    @Json(name = "category") val category: Int?
+)
+
+@JsonClass(generateAdapter = true)
+data class ScreenshotDto(@Json(name = "url") val url: String?)
 
 @JsonClass(generateAdapter = true)
 data class CoverDto(

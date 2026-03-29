@@ -30,14 +30,34 @@ fun ReleaseDateDto.toReleaseEntity(): ReleaseEntity? {
 fun GameDto.toGameEntity(): GameEntity = GameEntity(
     id = id,
     name = name,
-    coverUrl = cover?.url?.let { normalizeIgdbImageUrl(it) },
+    coverUrl = cover?.url?.let { normalizeCoverUrl(it) },
     genres = genres?.mapNotNull { it.name }?.joinToString(",") ?: "",
     rating = totalRating?.toFloat(),
-    summary = summary
+    summary = summary,
+    gameModes = gameModes?.mapNotNull { it.name }?.joinToString(",") ?: "",
+    themes = themes?.mapNotNull { it.name }?.joinToString(",") ?: "",
+    developers = involvedCompanies
+        ?.filter { it.developer == true }
+        ?.mapNotNull { it.company?.name }
+        ?.joinToString(",") ?: "",
+    publishers = involvedCompanies
+        ?.filter { it.publisher == true }
+        ?.mapNotNull { it.company?.name }
+        ?.joinToString(",") ?: "",
+    websiteUrl = websites?.firstOrNull { it.category == WEBSITE_CATEGORY_OFFICIAL }?.url,
+    screenshots = screenshots
+        ?.mapNotNull { it.url }
+        ?.map { normalizeScreenshotUrl(it) }
+        ?.joinToString(",") ?: ""
 )
 
-private fun normalizeIgdbImageUrl(url: String): String =
+private fun normalizeCoverUrl(url: String): String =
     "https:" + url.replace("t_thumb", "t_cover_big")
+
+private fun normalizeScreenshotUrl(url: String): String =
+    "https:" + url.replace("t_thumb", "t_screenshot_big")
+
+private const val WEBSITE_CATEGORY_OFFICIAL = 1
 
 // ── Entity → Domain ─────────────────────────────────────────────────────────
 
@@ -61,7 +81,16 @@ fun GameEntity.toDomain(releaseDate: LocalDate = LocalDate.now()): Game = Game(
     coverUrl = coverUrl,
     releaseDate = releaseDate,
     platforms = emptyList(),   // populated from releases at use-site
-    genres = if (genres.isBlank()) emptyList() else genres.split(","),
+    genres = genres.splitIfNotBlank(),
     rating = rating,
-    summary = summary
+    summary = summary,
+    gameModes = gameModes.splitIfNotBlank(),
+    themes = themes.splitIfNotBlank(),
+    developers = developers.splitIfNotBlank(),
+    publishers = publishers.splitIfNotBlank(),
+    websiteUrl = websiteUrl,
+    screenshots = screenshots.splitIfNotBlank()
 )
+
+private fun String.splitIfNotBlank(): List<String> =
+    if (isBlank()) emptyList() else split(",")

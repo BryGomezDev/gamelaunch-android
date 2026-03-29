@@ -56,20 +56,36 @@ class GameRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getGameDetail(id: Int): Game? {
-        // Try Room first — it has correct release dates from the calendar sync
-        val cached = gameDao.getGameById(id)
-        if (cached != null) {
-            val releaseEpoch = gameDao.getEarliestReleaseEpoch(id)
-            val releaseDate = releaseEpoch?.let {
-                Instant.ofEpochSecond(it).atZone(ZoneOffset.UTC).toLocalDate()
-            } ?: LocalDate.now()
-            val platforms = gameDao.getPlatformIdsForGame(id)
-                .mapNotNull { pid -> Platform.entries.firstOrNull { it.igdbId == pid } }
-            return cached.toDomain(releaseDate).copy(platforms = platforms)
+        // Always fetch enriched data from API and update Room
+        return try {
+            val dtos = igdbApi.getGameById(IgdbQueryBuilder.gameById(id).asIgdbBody())
+            val dto = dtos.firstOrNull()
+            if (dto != null) {
+                val wishlisted = gameDao.isWishlisted(id) ?: false
+                gameDao.upsertGames(listOf(dto.toGameEntity().copy(isWishlisted = wishlisted)))
+                val releaseEpoch = gameDao.getEarliestReleaseEpoch(id)
+                val releaseDate = releaseEpoch?.let { Instant.ofEpochSecond(it).atZone(ZoneOffset.UTC).toLocalDate() }
+                    ?: dto.firstReleaseDate?.let { Instant.ofEpochSecond(it).atZone(ZoneOffset.UTC).toLocalDate() }
+                    ?: LocalDate.now()
+                val platforms = gameDao.getPlatformIdsForGame(id)
+                    .mapNotNull { pid -> Platform.entries.firstOrNull { it.igdbId == pid } }
+                dto.toDomainGame(releaseDate, platforms)
+            } else {
+                roomFallback(id)
+            }
+        } catch (e: Exception) {
+            roomFallback(id)
         }
-        // Fall back to API if not in Room (e.g. came from search)
-        val dtos = igdbApi.getGameById(IgdbQueryBuilder.gameById(id).asIgdbBody())
-        return dtos.firstOrNull()?.toDomainGame()
+    }
+
+    private suspend fun roomFallback(id: Int): Game? {
+        val cached = gameDao.getGameById(id) ?: return null
+        val releaseEpoch = gameDao.getEarliestReleaseEpoch(id)
+        val releaseDate = releaseEpoch?.let { Instant.ofEpochSecond(it).atZone(ZoneOffset.UTC).toLocalDate() }
+            ?: LocalDate.now()
+        val platforms = gameDao.getPlatformIdsForGame(id)
+            .mapNotNull { pid -> Platform.entries.firstOrNull { it.igdbId == pid } }
+        return cached.toDomain(releaseDate).copy(platforms = platforms)
     }
 
     override suspend fun addToWishlist(game: Game) {
@@ -135,28 +151,41 @@ class GameRepositoryImpl @Inject constructor(
         Log.d(TAG, "Seed complete: ${gameEntities.size} games, ${releaseEntities.size} releases")
     }
 
-    private fun GameDto.toDomainGame(): Game {
-        val releaseDate = firstReleaseDate?.let {
+    private fun GameDto.toDomainGame(
+        releaseDate: LocalDate = firstReleaseDate?.let {
             Instant.ofEpochSecond(it).atZone(ZoneOffset.UTC).toLocalDate()
-        } ?: LocalDate.now()
-        return Game(
-            id = id,
-            name = name,
-            coverUrl = cover?.url?.let { "https:" + it.replace("t_thumb", "t_cover_big") },
-            releaseDate = releaseDate,
-            platforms = emptyList(),
-            genres = genres?.mapNotNull { it.name } ?: emptyList(),
-            rating = totalRating?.toFloat(),
-            summary = summary
-        )
-    }
+        } ?: LocalDate.now(),
+        platforms: List<Platform> = emptyList()
+    ): Game = Game(
+        id = id,
+        name = name,
+        coverUrl = cover?.url?.let { "https:" + it.replace("t_thumb", "t_cover_big") },
+        releaseDate = releaseDate,
+        platforms = platforms,
+        genres = genres?.mapNotNull { it.name } ?: emptyList(),
+        rating = totalRating?.toFloat(),
+        summary = summary,
+        gameModes = gameModes?.mapNotNull { it.name } ?: emptyList(),
+        themes = themes?.mapNotNull { it.name } ?: emptyList(),
+        developers = involvedCompanies?.filter { it.developer == true }?.mapNotNull { it.company?.name } ?: emptyList(),
+        publishers = involvedCompanies?.filter { it.publisher == true }?.mapNotNull { it.company?.name } ?: emptyList(),
+        websiteUrl = websites?.firstOrNull { it.category == 1 }?.url,
+        screenshots = screenshots?.mapNotNull { it.url }
+            ?.map { "https:" + it.replace("t_thumb", "t_screenshot_big") } ?: emptyList()
+    )
 
-    private fun Game.toEntity() = com.gamelaunch.data.local.entity.GameEntity(
+    private fun Game.toEntity() = GameEntity(
         id = id,
         name = name,
         coverUrl = coverUrl,
         genres = genres.joinToString(","),
         rating = rating,
-        summary = summary
+        summary = summary,
+        gameModes = gameModes.joinToString(","),
+        themes = themes.joinToString(","),
+        developers = developers.joinToString(","),
+        publishers = publishers.joinToString(","),
+        websiteUrl = websiteUrl,
+        screenshots = screenshots.joinToString(",")
     )
 }

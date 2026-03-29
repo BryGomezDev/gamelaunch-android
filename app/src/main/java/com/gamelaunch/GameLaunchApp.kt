@@ -26,7 +26,7 @@ class GameLaunchApp : Application(), Configuration.Provider {
         super.onCreate()
         SentryAndroid.init(this) { options ->
             options.dsn = BuildConfig.SENTRY_DSN
-            options.tracesSampleRate = 1.0
+            options.tracesSampleRate = if (BuildConfig.DEBUG) 1.0 else 0.2
             options.isEnableUserInteractionTracing = true
             options.environment = if (BuildConfig.DEBUG) "debug" else "production"
         }

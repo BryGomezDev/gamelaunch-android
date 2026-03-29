@@ -11,3 +11,8 @@ local.properties
 
 **/build/
 .claude/
+
+# Keystore & signing
+*.jks
+*.keystore
+keystore.properties
