@@ -4,6 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gamelaunch.domain.model.Game
 import com.gamelaunch.domain.usecase.SearchGamesUseCase
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.sentry.Sentry
 import kotlinx.coroutines.FlowPreview
@@ -13,6 +17,7 @@ import javax.inject.Inject
 
 private const val PAGE_SIZE = 20
 private const val MAX_HISTORY = 5
+private val HISTORY_KEY = stringPreferencesKey("search_history")
 
 data class SearchUiState(
     val query: String = "",
@@ -27,7 +32,8 @@ data class SearchUiState(
 @OptIn(FlowPreview::class)
 @HiltViewModel
 class SearchViewModel @Inject constructor(
-    private val searchGamesUseCase: SearchGamesUseCase
+    private val searchGamesUseCase: SearchGamesUseCase,
+    private val dataStore: DataStore<Preferences>
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SearchUiState())
@@ -37,6 +43,14 @@ class SearchViewModel @Inject constructor(
     private var currentOffset = 0
 
     init {
+        // Load persisted history on start
+        viewModelScope.launch {
+            val saved = dataStore.data.first()[HISTORY_KEY]
+            if (!saved.isNullOrEmpty()) {
+                _uiState.update { it.copy(recentSearches = saved.split(",")) }
+            }
+        }
+
         queryFlow
             .debounce(400)
             .filter { it.length >= 2 }
@@ -97,10 +111,11 @@ class SearchViewModel @Inject constructor(
     }
 
     private fun addToHistory(query: String) {
-        _uiState.update { state ->
-            val updated = (listOf(query) + state.recentSearches.filter { it != query })
-                .take(MAX_HISTORY)
-            state.copy(recentSearches = updated)
+        val updated = (listOf(query) + _uiState.value.recentSearches.filter { it != query })
+            .take(MAX_HISTORY)
+        _uiState.update { it.copy(recentSearches = updated) }
+        viewModelScope.launch {
+            dataStore.edit { it[HISTORY_KEY] = updated.joinToString(",") }
         }
     }
 }

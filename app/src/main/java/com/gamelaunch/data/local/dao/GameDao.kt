@@ -58,6 +58,26 @@ interface GameDao {
     """)
     fun getReleasesForRange(startEpoch: Long, endEpoch: Long): Flow<List<ReleaseWithGame>>
 
+    /**
+     * Filtered variant used by CalendarViewModel.
+     * Pass NULL for platformId / regionId to skip that filter.
+     * regionId filter always includes WORLDWIDE (regionId = 8) alongside the requested region.
+     */
+    @Transaction
+    @Query("""
+        SELECT * FROM releases
+        WHERE dateEpoch >= :startEpoch AND dateEpoch <= :endEpoch
+          AND (:platformId IS NULL OR platformId = :platformId)
+          AND (:regionId IS NULL OR regionId = :regionId OR regionId = 8)
+        ORDER BY dateEpoch ASC
+    """)
+    fun getReleasesForRangeFiltered(
+        startEpoch: Long,
+        endEpoch: Long,
+        platformId: Int?,
+        regionId: Int?
+    ): Flow<List<ReleaseWithGame>>
+
     @Query("DELETE FROM releases WHERE dateEpoch >= :startEpoch AND dateEpoch <= :endEpoch")
     suspend fun deleteReleasesForRange(startEpoch: Long, endEpoch: Long)
 }

@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
 interface GameRepository {
-    fun getReleasesForMonth(year: Int, month: Int): Flow<List<Release>>
+    fun getReleasesForMonth(year: Int, month: Int, platformId: Int? = null, regionId: Int? = null): Flow<List<Release>>
     fun getReleasesForDay(date: LocalDate): Flow<List<Release>>
     fun getWishlist(): Flow<List<Game>>
     suspend fun searchGames(query: String, offset: Int = 0): List<Game>

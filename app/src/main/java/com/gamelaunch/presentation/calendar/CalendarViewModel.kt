@@ -65,20 +65,20 @@ class CalendarViewModel @Inject constructor(
 
     private fun loadMonth(month: YearMonth) {
         loadJob?.cancel()
+        val state = _uiState.value
         loadJob = viewModelScope.launch {
-            getReleasesUseCase.forMonth(month.year, month.monthValue)
+            getReleasesUseCase.forMonth(month.year, month.monthValue, state.platformFilter, state.regionFilter)
                 .catch { e ->
                     Log.e(TAG, "Flow error: ${e.message}", e)
                     _uiState.update { it.copy(error = e.message) }
                 }
                 .collect { releases ->
-                    _uiState.update { state ->
-                        val filtered = releases.applyFilters(state.platformFilter, state.regionFilter)
-                        state.copy(
-                            releases = filtered,
+                    _uiState.update { s ->
+                        s.copy(
+                            releases = releases,
                             syncDebugInfo = "${releases.size} lanzamientos en Room",
-                            selectedDayReleases = state.selectedDay
-                                ?.let { day -> filtered.filter { it.date == day } }
+                            selectedDayReleases = s.selectedDay
+                                ?.let { day -> releases.filter { it.date == day } }
                                 ?: emptyList()
                         )
                     }
@@ -125,30 +125,12 @@ class CalendarViewModel @Inject constructor(
     }
 
     fun onPlatformFilter(platform: Platform?) {
-        _uiState.update { state ->
-            val filtered = state.releases.applyFilters(platform, state.regionFilter)
-            state.copy(
-                platformFilter = platform,
-                releases = filtered,
-                selectedDayReleases = state.selectedDay
-                    ?.let { day -> filtered.filter { it.date == day } }
-                    ?: emptyList()
-            )
-        }
+        _uiState.update { it.copy(platformFilter = platform) }
         loadMonth(_uiState.value.currentMonth)
     }
 
     fun onRegionFilter(region: Region?) {
-        _uiState.update { state ->
-            val filtered = state.releases.applyFilters(state.platformFilter, region)
-            state.copy(
-                regionFilter = region,
-                releases = filtered,
-                selectedDayReleases = state.selectedDay
-                    ?.let { day -> filtered.filter { it.date == day } }
-                    ?: emptyList()
-            )
-        }
+        _uiState.update { it.copy(regionFilter = region) }
         loadMonth(_uiState.value.currentMonth)
     }
 
@@ -184,10 +166,4 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
-    private fun List<Release>.applyFilters(platform: Platform?, region: Region?): List<Release> {
-        var result = this
-        if (platform != null) result = result.filter { it.platform == platform }
-        if (region != null) result = result.filter { it.region == region || it.region == Region.WORLDWIDE }
-        return result
-    }
 }

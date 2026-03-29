@@ -14,7 +14,10 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -316,7 +319,7 @@ private fun CalendarGrid(
 ) {
     val firstDayOffset = month.atDay(1).dayOfWeek.value % 7
     val daysInMonth = month.lengthOfMonth()
-    val releasesByDay = releases.groupBy { it.date.dayOfMonth }
+    val releasesByDay = remember(releases) { releases.groupBy { it.date.dayOfMonth } }
 
     Column(
         modifier = Modifier

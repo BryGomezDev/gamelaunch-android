@@ -32,11 +32,11 @@ class GameRepositoryImpl @Inject constructor(
     private val gameDao: GameDao
 ) : GameRepository {
 
-    override fun getReleasesForMonth(year: Int, month: Int): Flow<List<Release>> {
+    override fun getReleasesForMonth(year: Int, month: Int, platformId: Int?, regionId: Int?): Flow<List<Release>> {
         val ym = YearMonth.of(year, month)
         val startEpoch = ym.atDay(1).atStartOfDay(ZoneOffset.UTC).toEpochSecond()
         val endEpoch = ym.atEndOfMonth().atTime(23, 59, 59).atZone(ZoneOffset.UTC).toEpochSecond()
-        return gameDao.getReleasesForRange(startEpoch, endEpoch)
+        return gameDao.getReleasesForRangeFiltered(startEpoch, endEpoch, platformId, regionId)
             .map { list -> list.map { it.toDomain() } }
     }
 
