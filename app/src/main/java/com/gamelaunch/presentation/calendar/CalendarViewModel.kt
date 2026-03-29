@@ -95,22 +95,26 @@ class CalendarViewModel @Inject constructor(
     private fun fetchMonthIfEmpty(month: YearMonth) {
         if (month in syncedMonths) return
         viewModelScope.launch {
-            val cached = getReleasesUseCase.forMonth(month.year, month.monthValue).first()
-            if (cached.isEmpty()) {
-                _uiState.update { it.copy(isRefreshing = true, error = null, syncDebugInfo = "Cargando $month…") }
-                try {
-                    repository.syncMonth(month.year, month.monthValue)
+            try {
+                val cached = getReleasesUseCase.forMonth(month.year, month.monthValue).first()
+                if (cached.isEmpty()) {
+                    _uiState.update { it.copy(isRefreshing = true, error = null, syncDebugInfo = "Cargando $month…") }
+                    try {
+                        repository.syncMonth(month.year, month.monthValue)
+                        syncedMonths += month
+                    } catch (e: Exception) {
+                        Sentry.captureException(e)
+                        Log.e(TAG, "fetchMonthIfEmpty $month failed: ${e.message}", e)
+                        _uiState.update { it.copy(error = "Error al cargar mes: ${e.message}", syncDebugInfo = "Error: ${e.javaClass.simpleName}") }
+                    } finally {
+                        _uiState.update { it.copy(isRefreshing = false) }
+                    }
+                } else {
                     syncedMonths += month
-                } catch (e: Exception) {
-                    Sentry.captureException(e)
-                    Log.e(TAG, "fetchMonthIfEmpty $month failed: ${e.message}", e)
-                    _uiState.update { it.copy(error = "Error al cargar mes: ${e.message}", syncDebugInfo = "Error: ${e.javaClass.simpleName}") }
-                } finally {
-                    _uiState.update { it.copy(isRefreshing = false) }
+                    _uiState.update { it.copy(syncDebugInfo = "Room: ${cached.size} lanzamientos") }
                 }
-            } else {
-                syncedMonths += month
-                _uiState.update { it.copy(syncDebugInfo = "Room: ${cached.size} lanzamientos") }
+            } catch (e: Exception) {
+                Log.e(TAG, "fetchMonthIfEmpty $month read error: ${e.message}", e)
             }
         }
     }

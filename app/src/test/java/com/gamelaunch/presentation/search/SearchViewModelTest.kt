@@ -1,12 +1,17 @@
 package com.gamelaunch.presentation.search
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.preferencesOf
 import com.gamelaunch.domain.model.Game
 import com.gamelaunch.domain.usecase.SearchGamesUseCase
 import com.gamelaunch.util.MainDispatcherRule
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -26,6 +31,7 @@ class SearchViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val searchGamesUseCase: SearchGamesUseCase = mockk()
+    private val dataStore: DataStore<Preferences> = mockk()
     private lateinit var viewModel: SearchViewModel
 
     private fun fakeGame(id: Int) = Game(
@@ -36,7 +42,9 @@ class SearchViewModelTest {
 
     @Before
     fun setup() {
-        viewModel = SearchViewModel(searchGamesUseCase)
+        every { dataStore.data } returns flowOf(preferencesOf())
+        coEvery { dataStore.updateData(any()) } returns preferencesOf()
+        viewModel = SearchViewModel(searchGamesUseCase, dataStore)
     }
 
     @Test
@@ -117,7 +125,7 @@ class SearchViewModelTest {
 
         val state = viewModel.uiState.value
         assertEquals(22, state.results.size)
-        assertFalse(state.canLoadMore) // page2 < 20 items
+        assertFalse(state.canLoadMore)
     }
 
     @Test
