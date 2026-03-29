@@ -19,7 +19,8 @@ data class GameDto(
     @Json(name = "cover") val cover: CoverDto?,
     @Json(name = "genres") val genres: List<GenreDto>?,
     @Json(name = "total_rating") val totalRating: Double?,
-    @Json(name = "summary") val summary: String?
+    @Json(name = "summary") val summary: String?,
+    @Json(name = "first_release_date") val firstReleaseDate: Long? = null
 )
 
 @JsonClass(generateAdapter = true)

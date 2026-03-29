@@ -6,6 +6,7 @@ import com.gamelaunch.data.local.entity.GameEntity
 import com.gamelaunch.data.local.entity.ReleaseEntity
 import com.gamelaunch.data.remote.IgdbApi
 import com.gamelaunch.data.remote.IgdbQueryBuilder
+import com.gamelaunch.data.remote.dto.GameDto
 import com.gamelaunch.domain.model.Game
 import com.gamelaunch.domain.model.Platform
 import com.gamelaunch.domain.model.Release
@@ -51,18 +52,7 @@ class GameRepositoryImpl @Inject constructor(
 
     override suspend fun searchGames(query: String, offset: Int): List<Game> {
         val dtos = igdbApi.searchGames(IgdbQueryBuilder.searchGames(query, offset).asIgdbBody())
-        return dtos.map { dto ->
-            Game(
-                id = dto.id,
-                name = dto.name,
-                coverUrl = dto.cover?.url?.let { "https:" + it.replace("t_thumb", "t_cover_big") },
-                releaseDate = LocalDate.now(),
-                platforms = emptyList(),
-                genres = dto.genres?.mapNotNull { it.name } ?: emptyList(),
-                rating = dto.totalRating?.toFloat(),
-                summary = dto.summary
-            )
-        }
+        return dtos.map { dto -> dto.toDomainGame() }
     }
 
     override suspend fun getGameDetail(id: Int): Game? {
@@ -79,18 +69,7 @@ class GameRepositoryImpl @Inject constructor(
         }
         // Fall back to API if not in Room (e.g. came from search)
         val dtos = igdbApi.getGameById(IgdbQueryBuilder.gameById(id).asIgdbBody())
-        return dtos.firstOrNull()?.let { dto ->
-            Game(
-                id = dto.id,
-                name = dto.name,
-                coverUrl = dto.cover?.url?.let { "https:" + it.replace("t_thumb", "t_cover_big") },
-                releaseDate = LocalDate.now(),
-                platforms = emptyList(),
-                genres = dto.genres?.mapNotNull { it.name } ?: emptyList(),
-                rating = dto.totalRating?.toFloat(),
-                summary = dto.summary
-            )
-        }
+        return dtos.firstOrNull()?.toDomainGame()
     }
 
     override suspend fun addToWishlist(game: Game) {
@@ -154,6 +133,22 @@ class GameRepositoryImpl @Inject constructor(
         gameDao.upsertGames(gameEntities)
         gameDao.upsertReleases(releaseEntities)
         Log.d(TAG, "Seed complete: ${gameEntities.size} games, ${releaseEntities.size} releases")
+    }
+
+    private fun GameDto.toDomainGame(): Game {
+        val releaseDate = firstReleaseDate?.let {
+            Instant.ofEpochSecond(it).atZone(ZoneOffset.UTC).toLocalDate()
+        } ?: LocalDate.now()
+        return Game(
+            id = id,
+            name = name,
+            coverUrl = cover?.url?.let { "https:" + it.replace("t_thumb", "t_cover_big") },
+            releaseDate = releaseDate,
+            platforms = emptyList(),
+            genres = genres?.mapNotNull { it.name } ?: emptyList(),
+            rating = totalRating?.toFloat(),
+            summary = summary
+        )
     }
 
     private fun Game.toEntity() = com.gamelaunch.data.local.entity.GameEntity(

@@ -1,10 +1,12 @@
 package com.gamelaunch.notification
 
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
+import com.gamelaunch.MainActivity
 import com.gamelaunch.R
 
 class ReleaseAlarmReceiver : BroadcastReceiver() {
@@ -21,11 +23,21 @@ class ReleaseAlarmReceiver : BroadcastReceiver() {
             else -> "$gameName sale pronto"
         }
 
+        val openAppIntent = PendingIntent.getActivity(
+            context,
+            gameId,
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val notification = NotificationCompat.Builder(context, NotificationChannels.RELEASES_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("Próximo lanzamiento")
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(openAppIntent)
             .setAutoCancel(true)
             .build()
 

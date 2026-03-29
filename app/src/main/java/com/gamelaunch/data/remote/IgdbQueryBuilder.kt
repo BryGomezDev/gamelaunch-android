@@ -21,8 +21,8 @@ object IgdbQueryBuilder {
     }
 
     fun searchGames(query: String, offset: Int = 0): String =
-        "fields id,name,cover.url,genres.name,total_rating,summary; search \"$query\"; limit 20; offset $offset;"
+        "fields id,name,cover.url,genres.name,total_rating,summary,first_release_date; search \"$query\"; limit 20; offset $offset;"
 
     fun gameById(id: Int): String =
-        "fields id,name,cover.url,genres.name,total_rating,summary; where id = $id; limit 1;"
+        "fields id,name,cover.url,genres.name,total_rating,summary,first_release_date; where id = $id; limit 1;"
 }

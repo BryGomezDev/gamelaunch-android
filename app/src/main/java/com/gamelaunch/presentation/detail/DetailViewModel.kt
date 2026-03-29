@@ -1,5 +1,9 @@
 package com.gamelaunch.presentation.detail
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gamelaunch.domain.model.Game
@@ -24,7 +28,8 @@ data class DetailUiState(
 class DetailViewModel @Inject constructor(
     private val repository: GameRepository,
     private val wishlistUseCase: WishlistUseCase,
-    private val notificationScheduler: NotificationScheduler
+    private val notificationScheduler: NotificationScheduler,
+    private val dataStore: DataStore<Preferences>
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DetailUiState())
@@ -36,8 +41,9 @@ class DetailViewModel @Inject constructor(
             try {
                 val game = repository.getGameDetail(gameId)
                 val wishlisted = repository.isInWishlist(gameId)
+                val savedDays = dataStore.data.first()[intPreferencesKey("notify_days_$gameId")]
                 _uiState.update {
-                    it.copy(game = game, isWishlisted = wishlisted, isLoading = false)
+                    it.copy(game = game, isWishlisted = wishlisted, isLoading = false, notifyDaysAhead = savedDays)
                 }
             } catch (e: Exception) {
                 Sentry.captureException(e)
@@ -63,5 +69,8 @@ class DetailViewModel @Inject constructor(
         val game = _uiState.value.game ?: return
         notificationScheduler.scheduleReleaseNotification(game, days)
         _uiState.update { it.copy(notifyDaysAhead = days) }
+        viewModelScope.launch {
+            dataStore.edit { it[intPreferencesKey("notify_days_${game.id}")] = days }
+        }
     }
 }
