@@ -9,6 +9,7 @@ import com.gamelaunch.domain.model.Platform
 import com.gamelaunch.domain.model.Region
 import com.gamelaunch.domain.model.Release
 import com.gamelaunch.domain.usecase.GetReleasesUseCase
+import com.gamelaunch.domain.usecase.WishlistUseCase
 import com.gamelaunch.domain.repository.GameRepository
 import com.gamelaunch.presentation.settings.SettingsViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,6 +17,7 @@ import io.sentry.Sentry
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
@@ -27,6 +29,9 @@ data class CalendarUiState(
     val selectedDay: LocalDate? = null,
     val releases: List<Release> = emptyList(),
     val selectedDayReleases: List<Release> = emptyList(),
+    val weekReleases: List<Release> = emptyList(),
+    val featuredReleases: List<Release> = emptyList(),
+    val wishlistedIds: Set<Int> = emptySet(),
     val platformFilter: Platform? = null,
     val regionFilter: Region? = null,
     val isRefreshing: Boolean = false,
@@ -38,6 +43,7 @@ data class CalendarUiState(
 class CalendarViewModel @Inject constructor(
     private val getReleasesUseCase: GetReleasesUseCase,
     private val repository: GameRepository,
+    private val wishlistUseCase: WishlistUseCase,
     private val dataStore: DataStore<Preferences>
 ) : ViewModel() {
 
@@ -48,19 +54,46 @@ class CalendarViewModel @Inject constructor(
     private val syncedMonths = mutableSetOf<YearMonth>()
 
     init {
-        // Read preferred region from settings and apply as default filter
         viewModelScope.launch {
             val prefs = dataStore.data.first()
             val preferredRegion = Region.fromId(
                 prefs[SettingsViewModel.REGION_KEY] ?: Region.WORLDWIDE.igdbId
             )
-            // Only set filter if user has chosen a specific region (not WORLDWIDE = show all)
             val initialRegion = if (preferredRegion == Region.WORLDWIDE) null else preferredRegion
             _uiState.update { it.copy(regionFilter = initialRegion) }
         }
+
         val month = _uiState.value.currentMonth
         loadMonth(month)
         fetchMonthIfEmpty(month)
+
+        // Reactive wishlist ids
+        viewModelScope.launch {
+            wishlistUseCase.getWishlist().collect { games ->
+                _uiState.update { it.copy(wishlistedIds = games.map { g -> g.id }.toSet()) }
+            }
+        }
+
+        // Week + featured always based on current real month (not the viewed month)
+        viewModelScope.launch {
+            val today = LocalDate.now()
+            val ym = YearMonth.now()
+            getReleasesUseCase.forMonth(ym.year, ym.monthValue)
+                .catch { /* best-effort */ }
+                .collect { monthReleases ->
+                    val weekStart = today.with(DayOfWeek.MONDAY)
+                    val weekEnd = weekStart.plusDays(6)
+                    val week = monthReleases
+                        .filter { it.date >= weekStart && it.date <= weekEnd }
+                        .sortedBy { it.date }
+                    val featured = monthReleases
+                        .filter { it.game.rating != null }
+                        .sortedByDescending { it.game.rating }
+                        .distinctBy { it.game.id }
+                        .take(10)
+                    _uiState.update { it.copy(weekReleases = week, featuredReleases = featured) }
+                }
+        }
     }
 
     private fun loadMonth(month: YearMonth) {
@@ -138,6 +171,17 @@ class CalendarViewModel @Inject constructor(
         loadMonth(_uiState.value.currentMonth)
     }
 
+    fun toggleWishlist(release: Release) {
+        viewModelScope.launch {
+            val game = release.game
+            if (game.id in _uiState.value.wishlistedIds) {
+                wishlistUseCase.remove(game.id)
+            } else {
+                wishlistUseCase.add(game)
+            }
+        }
+    }
+
     fun refresh() {
         val month = _uiState.value.currentMonth
         viewModelScope.launch {
@@ -169,5 +213,4 @@ class CalendarViewModel @Inject constructor(
             }
         }
     }
-
 }

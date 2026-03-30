@@ -18,5 +18,6 @@ data class Game(
     val publishers: List<String> = emptyList(),
     val websiteUrl: String? = null,
     val screenshots: List<String> = emptyList(),
-    val summaryEs: String? = null
+    val summaryEs: String? = null,
+    val similarGames: List<SimilarGame> = emptyList()
 )

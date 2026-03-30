@@ -24,7 +24,7 @@ object IgdbQueryBuilder {
     fun searchGames(query: String, offset: Int = 0): String =
         "fields id,name,cover.url,genres.name,total_rating,summary,first_release_date,game_modes.name,themes.name; search \"$query\"; limit 20; offset $offset;"
 
-    // Detail — full enriched data
+    // Detail — full enriched data including similar games
     fun gameById(id: Int): String =
-        "fields id,name,cover.url,genres.name,total_rating,summary,first_release_date,game_modes.name,themes.name,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,websites.url,websites.category,screenshots.url; where id = $id; limit 1;"
+        "fields id,name,cover.url,genres.name,total_rating,summary,first_release_date,game_modes.name,themes.name,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,websites.url,websites.category,screenshots.url,similar_games.name,similar_games.cover.url; where id = $id; limit 1;"
 }

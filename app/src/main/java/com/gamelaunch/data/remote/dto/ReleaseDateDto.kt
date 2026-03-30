@@ -25,7 +25,8 @@ data class GameDto(
     @Json(name = "themes") val themes: List<ThemeDto>? = null,
     @Json(name = "involved_companies") val involvedCompanies: List<InvolvedCompanyDto>? = null,
     @Json(name = "websites") val websites: List<WebsiteDto>? = null,
-    @Json(name = "screenshots") val screenshots: List<ScreenshotDto>? = null
+    @Json(name = "screenshots") val screenshots: List<ScreenshotDto>? = null,
+    @Json(name = "similar_games") val similarGames: List<SimilarGameDto>? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -52,6 +53,13 @@ data class WebsiteDto(
 
 @JsonClass(generateAdapter = true)
 data class ScreenshotDto(@Json(name = "url") val url: String?)
+
+@JsonClass(generateAdapter = true)
+data class SimilarGameDto(
+    @Json(name = "id") val id: Int,
+    @Json(name = "name") val name: String?,
+    @Json(name = "cover") val cover: CoverDto?
+)
 
 @JsonClass(generateAdapter = true)
 data class CoverDto(

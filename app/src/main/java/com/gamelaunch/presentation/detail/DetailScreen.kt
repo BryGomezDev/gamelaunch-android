@@ -1,81 +1,66 @@
 package com.gamelaunch.presentation.detail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.gamelaunch.domain.model.Game
+import com.gamelaunch.domain.model.SimilarGame
+import com.gamelaunch.ui.components.PlatformChip
+import com.gamelaunch.ui.theme.*
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailScreen(
     gameId: Int,
     onBack: () -> Unit,
+    onGameClick: (Int) -> Unit = {},
     viewModel: DetailViewModel = hiltViewModel()
 ) {
     LaunchedEffect(gameId) { viewModel.loadGame(gameId) }
     val state by viewModel.uiState.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = viewModel::toggleWishlist) {
-                        Icon(
-                            imageVector = if (state.isWishlisted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = if (state.isWishlisted) "Quitar de wishlist" else "Añadir a wishlist",
-                            tint = if (state.isWishlisted) MaterialTheme.colorScheme.primary
-                                   else LocalContentColor.current
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-            )
-        }
-    ) { padding ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Background)
+    ) {
         when {
             state.isLoading -> Box(
-                Modifier.fillMaxSize().padding(padding),
+                Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
-            ) { CircularProgressIndicator() }
+            ) { CircularProgressIndicator(color = Accent) }
 
             state.error != null -> Box(
-                Modifier.fillMaxSize().padding(padding).padding(24.dp),
+                Modifier.fillMaxSize().padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -86,401 +71,471 @@ fun DetailScreen(
                 )
             }
 
-            state.game != null -> GameDetailContent(
-                game = state.game!!,
-                notifyDaysAhead = state.notifyDaysAhead,
-                onNotifyDaysSelected = viewModel::setNotifyDaysAhead,
-                isTranslating = state.isTranslating,
-                showOriginalSummary = state.showOriginalSummary,
-                onToggleSummaryLanguage = viewModel::toggleSummaryLanguage,
-                modifier = Modifier.padding(top = padding.calculateTopPadding())
+            state.game != null -> {
+                GameDetailContent(
+                    game = state.game!!,
+                    isWishlisted = state.isWishlisted,
+                    notifyDaysAhead = state.notifyDaysAhead,
+                    onNotifyDaysSelected = viewModel::setNotifyDaysAhead,
+                    isTranslating = state.isTranslating,
+                    showOriginalSummary = state.showOriginalSummary,
+                    onToggleSummaryLanguage = viewModel::toggleSummaryLanguage,
+                    onGameClick = onGameClick
+                )
+                // Overlaid nav buttons — always on top
+                OverlayNavButtons(
+                    isWishlisted = state.isWishlisted,
+                    onBack = onBack,
+                    onToggleWishlist = viewModel::toggleWishlist
+                )
+            }
+        }
+    }
+}
+
+// ── Overlay back + wishlist buttons ──────────────────────────────────────────
+
+@Composable
+private fun OverlayNavButtons(
+    isWishlisted: Boolean,
+    onBack: () -> Unit,
+    onToggleWishlist: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                .clickable(onClick = onBack),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Volver",
+                tint = Color.White,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                .clickable(onClick = onToggleWishlist),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (isWishlisted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                contentDescription = if (isWishlisted) "Quitar de lista" else "Añadir a lista",
+                tint = if (isWishlisted) Accent else Color.White,
+                modifier = Modifier.size(18.dp)
             )
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+// ── Main scrollable content ───────────────────────────────────────────────────
+
 @Composable
 private fun GameDetailContent(
     game: Game,
+    isWishlisted: Boolean,
     notifyDaysAhead: Int?,
     onNotifyDaysSelected: (Int) -> Unit,
     isTranslating: Boolean,
     showOriginalSummary: Boolean,
     onToggleSummaryLanguage: () -> Unit,
-    modifier: Modifier = Modifier
+    onGameClick: (Int) -> Unit
 ) {
     val uriHandler = LocalUriHandler.current
     val dateFormatter = remember { DateTimeFormatter.ofPattern("d MMM yyyy", Locale("es")) }
+    var showNotifyOptions by remember { mutableStateOf(notifyDaysAhead != null) }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
+        modifier = Modifier
+            .fillMaxWidth()
             .verticalScroll(rememberScrollState())
     ) {
-        // ── Hero: screenshots carousel ────────────────────────────────────
-        ScreenshotsCarousel(
-            screenshots = game.screenshots,
-            fallbackUrl = game.coverUrl,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(220.dp)
-        )
+        // ── Hero area ─────────────────────────────────────────────────────
+        HeroArea(game = game, dateFormatter = dateFormatter)
 
-        // ── Cover + título + rating ───────────────────────────────────────
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .padding(top = 12.dp, bottom = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(96.dp)
-                    .aspectRatio(3f / 4f)
-                    .shadow(6.dp, RoundedCornerShape(8.dp), clip = false)
-            ) {
-                AsyncImage(
-                    model = game.coverUrl,
-                    contentDescription = game.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(8.dp))
-                )
-            }
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = game.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                game.rating?.let { rating ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Star,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            "${"%.1f".format(rating / 10f)} / 10",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-                Text(
-                    text = game.releaseDate.format(dateFormatter),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
-
-        // ── Info: desarrollador, distribuidor, plataformas, web ──────────
+        // ── Body ─────────────────────────────────────────────────────────
         Column(
             modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .padding(top = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (game.developers.isNotEmpty()) {
-                InfoRow(
-                    icon = Icons.Default.Code,
-                    label = if (game.developers.size > 1) "Desarrolladores" else "Desarrollador",
-                    value = game.developers.joinToString(", ")
-                )
-            }
-            if (game.publishers.isNotEmpty()) {
-                InfoRow(
-                    icon = Icons.Default.Business,
-                    label = if (game.publishers.size > 1) "Distribuidores" else "Distribuidor",
-                    value = game.publishers.joinToString(", ")
-                )
-            }
+            // Platform chips
             if (game.platforms.isNotEmpty()) {
-                InfoRow(
-                    icon = Icons.Default.Devices,
-                    label = "Plataformas",
-                    value = game.platforms.joinToString(", ") { it.displayName }
-                )
-            }
-            game.websiteUrl?.let { url ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.clickable { uriHandler.openUri(url) }
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(top = 4.dp)
                 ) {
-                    Icon(
-                        Icons.Default.Language,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text(
-                        "Sitio web oficial",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        textDecoration = TextDecoration.Underline
-                    )
+                    items(game.platforms) { platform ->
+                        PlatformChip(platform = platform)
+                    }
                 }
             }
-        }
 
-        // ── Tags: modos de juego + géneros + temas ────────────────────────
-        val allTags = (game.genres + game.themes).distinct()
-        if (game.gameModes.isNotEmpty() || allTags.isNotEmpty()) {
-            Spacer(Modifier.height(16.dp))
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                if (game.gameModes.isNotEmpty()) {
-                    TagsSection(
-                        label = "Modo de juego",
-                        tags = game.gameModes,
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
+            // Action buttons
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                // Mi lista — outline
+                OutlinedButton(
+                    onClick = { /* wishlist handled by overlay button */ },
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Accent),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Accent),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(if (isWishlisted) "En mi lista" else "Mi lista", fontSize = 13.sp)
                 }
-                if (allTags.isNotEmpty()) {
-                    TagsSection(
-                        label = "Etiquetas",
-                        tags = allTags
-                    )
-                }
-            }
-        }
-
-        // ── Descripción ───────────────────────────────────────────────────
-        if (!game.summary.isNullOrBlank()) {
-            Spacer(Modifier.height(16.dp))
-            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
+                // Notificarme — filled
+                Button(
+                    onClick = { showNotifyOptions = !showNotifyOptions },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Accent,
+                        contentColor = TextPrimary
+                    ),
+                    modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        "Descripción",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold
+                        if (notifyDaysAhead != null) "Notif. $notifyDaysAhead d." else "Notificarme",
+                        fontSize = 13.sp
                     )
-                    when {
-                        isTranslating -> {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(12.dp),
-                                    strokeWidth = 1.5.dp
+                }
+            }
+
+            // Notify day chips (expandable)
+            if (showNotifyOptions) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(1, 3, 7).forEach { days ->
+                        val isSelected = notifyDaysAhead == days
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    if (isSelected) Accent else SurfaceVariant,
+                                    RoundedCornerShape(20.dp)
                                 )
-                                Text(
-                                    "Traduciendo…",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        game.summaryEs != null -> {
-                            TextButton(
-                                onClick = onToggleSummaryLanguage,
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-                            ) {
-                                Text(
-                                    if (showOriginalSummary) "Ver en español" else "Ver original",
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            }
+                                .clickable { onNotifyDaysSelected(days) }
+                                .padding(horizontal = 14.dp, vertical = 7.dp)
+                        ) {
+                            Text(
+                                "$days día${if (days > 1) "s" else ""} antes",
+                                fontSize = 12.sp,
+                                color = if (isSelected) TextPrimary else TextSecondary
+                            )
                         }
                     }
                 }
-                Spacer(Modifier.height(6.dp))
-                val displaySummary = if (!showOriginalSummary && game.summaryEs != null) {
-                    game.summaryEs
-                } else {
-                    game.summary
-                }
+            }
+
+            HorizontalDivider(thickness = 0.5.dp, color = BorderSubtle)
+
+            // Description
+            if (!game.summary.isNullOrBlank()) {
+                DescriptionSection(
+                    game = game,
+                    isTranslating = isTranslating,
+                    showOriginalSummary = showOriginalSummary,
+                    onToggleSummaryLanguage = onToggleSummaryLanguage
+                )
+            }
+
+            // Tags LazyRow
+            val allTags = (game.gameModes + game.genres + game.themes).distinct()
+            if (allTags.isNotEmpty()) {
+                TagsRow(tags = allTags)
+            }
+        }
+
+        // Screenshots LazyRow (full width, no horizontal padding)
+        if (game.screenshots.isNotEmpty()) {
+            Spacer(Modifier.height(4.dp))
+            SectionLabel("Capturas de pantalla", modifier = Modifier.padding(horizontal = 16.dp))
+            Spacer(Modifier.height(8.dp))
+            ScreenshotsRow(screenshots = game.screenshots)
+        }
+
+        // Website link
+        game.websiteUrl?.let { url ->
+            Spacer(Modifier.height(4.dp))
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .clickable { uriHandler.openUri(url) },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 Text(
-                    text = displaySummary ?: "",
-                    style = MaterialTheme.typography.bodySmall,
-                    lineHeight = 20.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    "Sitio web oficial →",
+                    fontSize = 13.sp,
+                    color = Accent
                 )
             }
         }
 
-        // ── Notificaciones ────────────────────────────────────────────────
-        Spacer(Modifier.height(20.dp))
-        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-            Text(
-                "Notificarme antes del lanzamiento:",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
-            )
+        // Related games LazyRow
+        if (game.similarGames.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            SectionLabel("Juegos relacionados", modifier = Modifier.padding(horizontal = 16.dp))
             Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(1, 3, 7).forEach { days ->
-                    FilterChip(
-                        selected = notifyDaysAhead == days,
-                        onClick = { onNotifyDaysSelected(days) },
-                        label = { Text("$days día${if (days > 1) "s" else ""} antes") }
-                    )
-                }
-            }
+            RelatedGamesRow(games = game.similarGames, onGameClick = onGameClick)
         }
 
         Spacer(Modifier.height(32.dp))
     }
 }
 
-// ── Screenshots carousel ─────────────────────────────────────────────────────
+// ── Hero area ─────────────────────────────────────────────────────────────────
 
 @Composable
-private fun ScreenshotsCarousel(
-    screenshots: List<String>,
-    fallbackUrl: String?,
-    modifier: Modifier = Modifier
+private fun HeroArea(
+    game: Game,
+    dateFormatter: DateTimeFormatter
 ) {
-    val images = screenshots.ifEmpty { listOfNotNull(fallbackUrl) }
-    if (images.isEmpty()) {
-        Box(modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant))
-        return
-    }
+    val heroImage = game.screenshots.firstOrNull() ?: game.coverUrl
 
-    val pagerState = rememberPagerState { images.size }
-
-    if (images.size > 1) {
-        LaunchedEffect(pagerState) {
-            while (true) {
-                delay(4_000)
-                val next = (pagerState.currentPage + 1) % images.size
-                pagerState.animateScrollToPage(next)
-            }
-        }
-    }
-
-    Box(modifier = modifier) {
-        HorizontalPager(
-            state = pagerState,
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(220.dp)
+    ) {
+        // Background image
+        AsyncImage(
+            model = heroImage,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
-        ) { page ->
-            AsyncImage(
-                model = images[page],
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
+        )
 
-        // Gradient fade to background at the bottom
+        // Gradient bottom
         Box(
-            Modifier
+            modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
+                .height(130.dp)
                 .align(Alignment.BottomCenter)
                 .background(
                     Brush.verticalGradient(
-                        listOf(Color.Transparent, MaterialTheme.colorScheme.background)
+                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.92f))
                     )
                 )
         )
 
-        // Page indicators
-        if (images.size > 1) {
-            Row(
+        // Info row at bottom of hero
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomStart)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Mini cover
+            AsyncImage(
+                model = game.coverUrl,
+                contentDescription = game.name,
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .width(60.dp)
+                    .height(80.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .border(1.5.dp, Accent, RoundedCornerShape(8.dp))
+            )
+
+            // Title + info
+            Column(
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+                modifier = Modifier.weight(1f)
             ) {
-                repeat(images.size) { index ->
-                    val isSelected = index == pagerState.currentPage
-                    Box(
-                        modifier = Modifier
-                            .size(if (isSelected) 8.dp else 6.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isSelected) Color.White
-                                else Color.White.copy(alpha = 0.5f)
-                            )
-                    )
+                Text(
+                    text = game.name,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                val studio = game.developers.firstOrNull() ?: game.publishers.firstOrNull()
+                val dateStr = game.releaseDate.format(dateFormatter)
+                Text(
+                    text = if (studio != null) "$dateStr · $studio" else dateStr,
+                    fontSize = 11.sp,
+                    color = TextHint,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                game.rating?.let { rating ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Star,
+                            contentDescription = null,
+                            tint = StarColor,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Text(
+                            text = "%.1f".format(rating / 10f),
+                            fontSize = 12.sp,
+                            color = StarColor,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "/ 10",
+                            fontSize = 11.sp,
+                            color = TextHint
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-// ── Componentes reutilizables ────────────────────────────────────────────────
+// ── Description section ───────────────────────────────────────────────────────
 
 @Composable
-private fun InfoRow(
-    icon: ImageVector,
-    label: String,
-    value: String
+private fun DescriptionSection(
+    game: Game,
+    isTranslating: Boolean,
+    showOriginalSummary: Boolean,
+    onToggleSummaryLanguage: () -> Unit
 ) {
-    Row(
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(18.dp).padding(top = 2.dp)
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            SectionLabel("Descripción")
+            when {
+                isTranslating -> Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    CircularProgressIndicator(Modifier.size(12.dp), strokeWidth = 1.5.dp, color = Accent)
+                    Text("Traduciendo…", fontSize = 11.sp, color = TextHint)
+                }
+                game.summaryEs != null -> TextButton(
+                    onClick = onToggleSummaryLanguage,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                ) {
+                    Text(
+                        if (showOriginalSummary) "Ver en español" else "Ver original",
+                        fontSize = 11.sp,
+                        color = Accent
+                    )
+                }
+            }
+        }
+        val text = if (!showOriginalSummary && game.summaryEs != null) game.summaryEs else game.summary
         Text(
-            text = "$label: ",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.weight(1f)
+            text = text ?: "",
+            fontSize = 13.sp,
+            color = TextSecondary,
+            lineHeight = 20.sp
         )
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+// ── Tags LazyRow ──────────────────────────────────────────────────────────────
+
 @Composable
-private fun TagsSection(
-    label: String,
-    tags: List<String>,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant
-) {
+private fun TagsRow(tags: List<String>) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.SemiBold
-        )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            tags.forEach { tag ->
-                SuggestionChip(
-                    onClick = {},
-                    label = { Text(tag, style = MaterialTheme.typography.labelSmall) },
-                    colors = SuggestionChipDefaults.suggestionChipColors(
-                        containerColor = containerColor
-                    )
+        SectionLabel("Etiquetas", modifier = Modifier.padding(horizontal = 0.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(tags) { tag ->
+                Box(
+                    modifier = Modifier
+                        .background(SurfaceVariant, RoundedCornerShape(20.dp))
+                        .padding(horizontal = 12.dp, vertical = 5.dp)
+                ) {
+                    Text(text = tag, fontSize = 11.sp, color = TextSecondary)
+                }
+            }
+        }
+    }
+}
+
+// ── Screenshots LazyRow ───────────────────────────────────────────────────────
+
+@Composable
+private fun ScreenshotsRow(screenshots: List<String>) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(screenshots) { url ->
+            AsyncImage(
+                model = url,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .width(160.dp)
+                    .height(90.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(SurfaceVariant)
+            )
+        }
+    }
+}
+
+// ── Related games LazyRow ─────────────────────────────────────────────────────
+
+@Composable
+private fun RelatedGamesRow(games: List<SimilarGame>, onGameClick: (Int) -> Unit) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        items(games) { game ->
+            Column(
+                modifier = Modifier
+                    .width(86.dp)
+                    .clickable { onGameClick(game.id) },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                AsyncImage(
+                    model = game.coverUrl,
+                    contentDescription = game.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .width(86.dp)
+                        .height(114.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(SurfaceVariant)
+                )
+                Text(
+                    text = game.name,
+                    fontSize = 10.sp,
+                    color = TextSecondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
                 )
             }
         }
     }
+}
+
+// ── Section label ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun SectionLabel(title: String, modifier: Modifier = Modifier) {
+    Text(
+        text = title,
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Bold,
+        color = TextPrimary,
+        modifier = modifier
+    )
 }

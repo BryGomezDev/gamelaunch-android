@@ -1,42 +1,41 @@
 package com.gamelaunch.presentation.calendar
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import com.gamelaunch.BuildConfig
 import com.gamelaunch.domain.model.Platform
-import io.sentry.Sentry
 import com.gamelaunch.domain.model.Region
 import com.gamelaunch.domain.model.Release
+import com.gamelaunch.ui.components.HeroCard
+import com.gamelaunch.ui.components.WeekCard
+import com.gamelaunch.ui.theme.*
+import io.sentry.Sentry
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
@@ -46,21 +45,18 @@ import java.util.Locale
 @Composable
 fun CalendarScreen(
     onGameClick: (Int) -> Unit,
+    onDayClick: (LocalDate) -> Unit,
+    onSearchClick: () -> Unit,
     viewModel: CalendarViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
 
     Scaffold(
+        containerColor = Background,
         topBar = {
-            TopAppBar(
-                title = { Text("GameLaunch") },
-                actions = {
-                    if (BuildConfig.DEBUG) {
-                        IconButton(onClick = viewModel::seedData) {
-                            Icon(Icons.Default.BugReport, contentDescription = "Seed test data")
-                        }
-                    }
-                }
+            CalendarTopBar(
+                onSearchClick = onSearchClick,
+                onDebugSeed = if (BuildConfig.DEBUG) viewModel::seedData else null
             )
         }
     ) { padding ->
@@ -71,13 +67,14 @@ fun CalendarScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Background)
+            ) {
                 if (BuildConfig.DEBUG) {
                     item {
-                        DebugInfoBanner(
-                            info = state.syncDebugInfo,
-                            releaseCount = state.releases.size
-                        )
+                        DebugInfoBanner(state.syncDebugInfo, state.releases.size)
                     }
                     item {
                         Button(
@@ -85,25 +82,28 @@ fun CalendarScreen(
                                 Sentry.captureMessage("Test manual desde GameLaunch")
                                 throw RuntimeException("Test crash de Sentry — puedes ignorar esto")
                             },
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp, vertical = 4.dp)
-                        ) {
-                            Text("Test Sentry")
-                        }
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                        ) { Text("Test Sentry") }
                     }
                 }
+
+                // ── Platform filter ───────────────────────────────────────
                 item {
                     PlatformFilterRow(
                         selected = state.platformFilter,
                         onSelect = viewModel::onPlatformFilter
                     )
                 }
+
+                // ── Region filter ─────────────────────────────────────────
                 item {
                     RegionFilterRow(
                         selected = state.regionFilter,
                         onSelect = viewModel::onRegionFilter
                     )
                 }
+
+                // ── Month header + calendar ───────────────────────────────
                 item {
                     MonthHeader(
                         month = state.currentMonth,
@@ -116,39 +116,14 @@ fun CalendarScreen(
                         month = state.currentMonth,
                         releases = state.releases,
                         selectedDay = state.selectedDay,
-                        onDayClick = viewModel::onDaySelected
+                        onDayClick = { date ->
+                            viewModel.onDaySelected(date)
+                            onDayClick(date)
+                        }
                     )
                 }
 
-                if (state.selectedDay != null) {
-                    item {
-                        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
-                        Text(
-                            text = formatDayTitle(state.selectedDay!!),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
-                        )
-                    }
-                    if (state.selectedDayReleases.isEmpty()) {
-                        item {
-                            Text(
-                                text = "Sin lanzamientos este día",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-                        }
-                    } else {
-                        items(state.selectedDayReleases, key = { it.id }) { release ->
-                            ReleaseCard(
-                                release = release,
-                                onClick = { onGameClick(release.game.id) }
-                            )
-                        }
-                    }
-                }
-
+                // ── Error ─────────────────────────────────────────────────
                 state.error?.let { error ->
                     item {
                         Text(
@@ -159,162 +134,145 @@ fun CalendarScreen(
                         )
                     }
                 }
-            }
-        }
-    }
-}
 
-// ── Release Card ─────────────────────────────────────────────────────────────
-
-@Composable
-private fun ReleaseCard(release: Release, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            // Cover art
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(release.game.coverUrl)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = release.game.name,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(width = 60.dp, height = 80.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            )
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = release.game.name,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(Modifier.height(6.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    PlatformBadge(platform = release.platform)
-                    release.game.rating?.let { rating ->
-                        Text(
-                            text = "★ ${"%.0f".format(rating / 10f)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                // ── Esta semana ───────────────────────────────────────────
+                if (state.weekReleases.isNotEmpty()) {
+                    item { SectionDivider() }
+                    item {
+                        SectionHeader("Esta semana")
+                    }
+                    item {
+                        WeekRow(
+                            releases = state.weekReleases,
+                            onGameClick = onGameClick
                         )
                     }
                 }
-                // Multiplayer badge + genre tags
-                val isMultiplayer = release.game.gameModes.any {
-                    it.contains("Multiplayer", ignoreCase = true) ||
-                    it.contains("Co-operative", ignoreCase = true)
-                }
-                val genres = release.game.genres.take(2)
-                if (isMultiplayer || genres.isNotEmpty()) {
-                    Spacer(Modifier.height(5.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (isMultiplayer) {
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = MaterialTheme.colorScheme.tertiaryContainer
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.People,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(10.dp),
-                                        tint = MaterialTheme.colorScheme.onTertiaryContainer
-                                    )
-                                    Text(
-                                        "Multi",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                                    )
-                                }
-                            }
-                        }
-                        genres.forEach { genre ->
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant
-                            ) {
-                                Text(
-                                    text = genre,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
+
+                // ── Próximos destacados ───────────────────────────────────
+                if (state.featuredReleases.isNotEmpty()) {
+                    item { SectionDivider() }
+                    item {
+                        SectionHeader("Próximos destacados")
                     }
+                    item {
+                        FeaturedRow(
+                            releases = state.featuredReleases,
+                            wishlistedIds = state.wishlistedIds,
+                            onWishlistToggle = viewModel::toggleWishlist,
+                            onGameClick = onGameClick
+                        )
+                    }
+                }
+
+                item { Spacer(Modifier.height(16.dp)) }
+            }
+        }
+    }
+}
+
+// ── Top bar ───────────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CalendarTopBar(
+    onSearchClick: () -> Unit,
+    onDebugSeed: (() -> Unit)?
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Background)
+            .padding(horizontal = 16.dp)
+            .padding(top = 12.dp, bottom = 8.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Search bar (tap-only, navigates to SearchScreen)
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(42.dp)
+                    .background(SurfaceVariant, RoundedCornerShape(12.dp))
+                    .clickable(onClick = onSearchClick)
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = null,
+                    tint = TextHint,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "Buscar juegos…",
+                    fontSize = 14.sp,
+                    color = TextHint
+                )
+            }
+            // Notifications
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .background(SurfaceVariant, RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Notifications,
+                    contentDescription = "Notificaciones",
+                    tint = TextSecondary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            // Debug seed button
+            if (onDebugSeed != null) {
+                IconButton(onClick = onDebugSeed) {
+                    Icon(Icons.Default.BugReport, contentDescription = "Seed", tint = TextHint)
                 }
             }
         }
     }
 }
 
-@Composable
-private fun PlatformBadge(platform: Platform) {
-    Surface(
-        shape = RoundedCornerShape(4.dp),
-        color = platform.toColor()
-    ) {
-        Text(
-            text = platform.displayName,
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.White,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-        )
-    }
-}
-
-// ── Filter row ───────────────────────────────────────────────────────────────
+// ── Platform filter ───────────────────────────────────────────────────────────
 
 @Composable
 private fun PlatformFilterRow(selected: Platform?, onSelect: (Platform?) -> Unit) {
     LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        item {
-            FilterChip(
-                selected = selected == null,
-                onClick = { onSelect(null) },
-                label = { Text("Todos") }
-            )
-        }
+        item { PlatformFilterChip("Todos", selected == null) { onSelect(null) } }
         items(Platform.entries) { platform ->
-            FilterChip(
-                selected = selected == platform,
-                onClick = { onSelect(platform) },
-                label = { Text(platform.displayName) }
-            )
+            PlatformFilterChip(platform.displayName, selected == platform) { onSelect(platform) }
         }
     }
 }
 
-// ── Region filter row ─────────────────────────────────────────────────────────
+@Composable
+private fun PlatformFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .background(
+                if (isSelected) Accent else SurfaceVariant,
+                RoundedCornerShape(20.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+            color = if (isSelected) TextPrimary else TextSecondary
+        )
+    }
+}
+
+// ── Region filter ─────────────────────────────────────────────────────────────
 
 @Composable
 private fun RegionFilterRow(selected: Region?, onSelect: (Region?) -> Unit) {
@@ -324,47 +282,62 @@ private fun RegionFilterRow(selected: Region?, onSelect: (Region?) -> Unit) {
     )
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        item {
-            FilterChip(
-                selected = selected == null,
-                onClick = { onSelect(null) },
-                label = { Text("Todas") }
-            )
-        }
+        item { RegionFilterChip("Todas", selected == null) { onSelect(null) } }
         items(regions) { region ->
-            FilterChip(
-                selected = selected == region,
-                onClick = { onSelect(region) },
-                label = { Text(region.displayName) }
-            )
+            RegionFilterChip(region.displayName, selected == region) { onSelect(region) }
         }
     }
 }
 
-// ── Month header ─────────────────────────────────────────────────────────────
+@Composable
+private fun RegionFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .background(
+                if (isSelected) AccentDim else Color.Transparent,
+                RoundedCornerShape(20.dp)
+            )
+            .border(0.5.dp, if (isSelected) Accent else BorderSubtle, RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = if (isSelected) Accent else TextHint
+        )
+    }
+}
+
+// ── Month header ──────────────────────────────────────────────────────────────
 
 @Composable
 private fun MonthHeader(month: YearMonth, onPrev: () -> Unit, onNext: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        IconButton(onClick = onPrev) { Icon(Icons.Default.ChevronLeft, "Mes anterior") }
+        IconButton(onClick = onPrev) {
+            Icon(Icons.Default.ChevronLeft, "Mes anterior", tint = TextSecondary)
+        }
         Text(
             text = "${month.month.getDisplayName(TextStyle.FULL, Locale.getDefault()).replaceFirstChar { it.uppercase() }} ${month.year}",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextPrimary
         )
-        IconButton(onClick = onNext) { Icon(Icons.Default.ChevronRight, "Mes siguiente") }
+        IconButton(onClick = onNext) {
+            Icon(Icons.Default.ChevronRight, "Mes siguiente", tint = TextSecondary)
+        }
     }
 }
 
-// ── Calendar grid (non-lazy to avoid nested scroll conflicts) ─────────────────
+// ── Calendar grid ─────────────────────────────────────────────────────────────
 
 @Composable
 private fun CalendarGrid(
@@ -382,21 +355,19 @@ private fun CalendarGrid(
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        // Day-of-week headers
         Row(modifier = Modifier.fillMaxWidth()) {
             listOf("D", "L", "M", "X", "J", "V", "S").forEach { label ->
                 Text(
                     text = label,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    fontSize = 11.sp,
+                    color = TextHint
                 )
             }
         }
         Spacer(Modifier.height(4.dp))
 
-        // Build weeks
         val totalCells = firstDayOffset + daysInMonth
         val rows = (totalCells + 6) / 7
         var dayCounter = 1
@@ -435,26 +406,36 @@ private fun DayCell(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bgColor = when {
-        isSelected -> MaterialTheme.colorScheme.primaryContainer
-        isToday -> MaterialTheme.colorScheme.secondaryContainer
-        else -> Color.Transparent
+    val bg = when {
+        isToday    -> Accent
+        isSelected -> Surface
+        else       -> Color.Transparent
+    }
+    val borderColor = when {
+        isSelected && !isToday -> Accent
+        else                   -> Color.Transparent
+    }
+    val textColor = when {
+        isToday -> TextPrimary
+        else    -> TextSecondary
     }
 
     Column(
         modifier = modifier
             .aspectRatio(1f)
             .padding(2.dp)
+            .border(0.5.dp, borderColor, CircleShape)
             .clip(CircleShape)
-            .background(bgColor)
+            .background(bg)
             .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Text(
             text = day.toString(),
-            style = MaterialTheme.typography.bodySmall,
+            fontSize = 12.sp,
             fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
+            color = textColor,
             textAlign = TextAlign.Center
         )
         if (releases.isNotEmpty()) {
@@ -468,7 +449,7 @@ private fun DayCell(
                         modifier = Modifier
                             .size(4.dp)
                             .clip(CircleShape)
-                            .background(platform.toColor())
+                            .background(platform.toCalendarDotColor())
                     )
                     Spacer(Modifier.width(2.dp))
                 }
@@ -477,34 +458,103 @@ private fun DayCell(
     }
 }
 
-// ── Debug banner ─────────────────────────────────────────────────────────────
+// ── Section helpers ───────────────────────────────────────────────────────────
+
+@Composable
+private fun SectionDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        thickness = 0.5.dp,
+        color = BorderSubtle
+    )
+}
+
+@Composable
+private fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        fontSize = 16.sp,
+        fontWeight = FontWeight.Bold,
+        color = TextPrimary,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+    )
+}
+
+// ── Esta semana ───────────────────────────────────────────────────────────────
+
+@Composable
+private fun WeekRow(releases: List<Release>, onGameClick: (Int) -> Unit) {
+    val today = LocalDate.now()
+    val todayIndex = releases.indexOfFirst { it.date >= today }.coerceAtLeast(0)
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(releases) {
+        if (todayIndex > 0) listState.scrollToItem(todayIndex)
+    }
+
+    LazyRow(
+        state = listState,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        items(releases, key = { it.id }) { release ->
+            WeekCard(
+                release = release,
+                onClick = { onGameClick(release.game.id) }
+            )
+        }
+    }
+}
+
+// ── Próximos destacados ───────────────────────────────────────────────────────
+
+@Composable
+private fun FeaturedRow(
+    releases: List<Release>,
+    wishlistedIds: Set<Int>,
+    onWishlistToggle: (Release) -> Unit,
+    onGameClick: (Int) -> Unit
+) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        items(releases, key = { it.id }) { release ->
+            HeroCard(
+                release = release,
+                isWishlisted = release.game.id in wishlistedIds,
+                onWishlistClick = { onWishlistToggle(release) },
+                onClick = { onGameClick(release.game.id) }
+            )
+        }
+    }
+}
+
+// ── Debug banner ──────────────────────────────────────────────────────────────
 
 @Composable
 private fun DebugInfoBanner(info: String, releaseCount: Int) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier.fillMaxWidth()
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(SurfaceVariant)
+            .padding(horizontal = 12.dp, vertical = 4.dp)
     ) {
         Text(
             text = "DEBUG | $info | releases en UI: $releaseCount",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+            fontSize = 11.sp,
+            color = TextHint
         )
     }
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Platform dot color helper ─────────────────────────────────────────────────
 
-private fun formatDayTitle(date: LocalDate): String {
-    val dayName = date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
-        .replaceFirstChar { it.uppercase() }
-    return "$dayName, ${date.dayOfMonth} de ${date.month.getDisplayName(TextStyle.FULL, Locale.getDefault())}"
-}
-
-fun Platform.toColor(): Color = when (this) {
-    Platform.STEAM -> Color(0xFF1B2838)
-    Platform.PLAYSTATION_5, Platform.PLAYSTATION_4 -> Color(0xFF003791)
-    Platform.XBOX_SERIES, Platform.XBOX_ONE -> Color(0xFF107C10)
-    Platform.NINTENDO_SWITCH -> Color(0xFFE4000F)
+fun Platform.toCalendarDotColor(): Color = when (this) {
+    Platform.STEAM                         -> PlatformSteam
+    Platform.PLAYSTATION_5,
+    Platform.PLAYSTATION_4                 -> PlatformPS
+    Platform.XBOX_SERIES,
+    Platform.XBOX_ONE                      -> PlatformXbox
+    Platform.NINTENDO_SWITCH               -> PlatformSwitch
 }

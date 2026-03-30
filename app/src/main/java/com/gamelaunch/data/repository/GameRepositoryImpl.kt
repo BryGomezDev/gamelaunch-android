@@ -171,7 +171,15 @@ class GameRepositoryImpl @Inject constructor(
         publishers = involvedCompanies?.filter { it.publisher == true }?.mapNotNull { it.company?.name } ?: emptyList(),
         websiteUrl = websites?.firstOrNull { it.category == 1 }?.url,
         screenshots = screenshots?.mapNotNull { it.url }
-            ?.map { "https:" + it.replace("t_thumb", "t_screenshot_big") } ?: emptyList()
+            ?.map { "https:" + it.replace("t_thumb", "t_screenshot_big") } ?: emptyList(),
+        similarGames = similarGames?.mapNotNull { dto ->
+            val name = dto.name ?: return@mapNotNull null
+            com.gamelaunch.domain.model.SimilarGame(
+                id = dto.id,
+                name = name,
+                coverUrl = dto.cover?.url?.let { "https:" + it.replace("t_thumb", "t_cover_big") }
+            )
+        } ?: emptyList()
     )
 
     override suspend fun saveTranslation(gameId: Int, summaryEs: String) =

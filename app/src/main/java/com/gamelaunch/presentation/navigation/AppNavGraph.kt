@@ -9,10 +9,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.gamelaunch.presentation.calendar.CalendarScreen
+import com.gamelaunch.presentation.day.DayReleasesScreen
 import com.gamelaunch.presentation.detail.DetailScreen
+import com.gamelaunch.presentation.profile.ProfileScreen
 import com.gamelaunch.presentation.search.SearchScreen
 import com.gamelaunch.presentation.settings.SettingsScreen
 import com.gamelaunch.presentation.wishlist.WishlistScreen
+import java.time.LocalDate
 
 sealed class Screen(val route: String) {
     object Calendar : Screen("calendar")
@@ -22,13 +25,17 @@ sealed class Screen(val route: String) {
     object Detail : Screen("detail/{gameId}") {
         fun createRoute(gameId: Int) = "detail/$gameId"
     }
+    object DayReleases : Screen("day_releases/{date}") {
+        fun createRoute(date: LocalDate) = "day_releases/$date"
+    }
+    object Profile : Screen("profile")
 }
 
-private val tabRoutes = setOf(
+val tabRoutes = setOf(
     Screen.Calendar.route,
     Screen.Search.route,
     Screen.Wishlist.route,
-    Screen.Settings.route
+    Screen.Profile.route
 )
 
 @Composable
@@ -42,7 +49,11 @@ fun AppNavGraph(navController: NavHostController) {
         popExitTransition = { fadeOut(tween(200)) }
     ) {
         composable(Screen.Calendar.route) {
-            CalendarScreen(onGameClick = { navController.navigate(Screen.Detail.createRoute(it)) })
+            CalendarScreen(
+                onGameClick  = { navController.navigate(Screen.Detail.createRoute(it)) },
+                onDayClick   = { date -> navController.navigate(Screen.DayReleases.createRoute(date)) },
+                onSearchClick = { navController.navigate(Screen.Search.route) }
+            )
         }
         composable(Screen.Search.route) {
             SearchScreen(onGameClick = { navController.navigate(Screen.Detail.createRoute(it)) })
@@ -53,24 +64,36 @@ fun AppNavGraph(navController: NavHostController) {
         composable(Screen.Settings.route) {
             SettingsScreen()
         }
+        composable(Screen.Profile.route) {
+            ProfileScreen()
+        }
         composable(
             route = Screen.Detail.route,
             arguments = listOf(navArgument("gameId") { type = NavType.IntType }),
-            enterTransition = {
-                slideInHorizontally(tween(300)) { it } + fadeIn(tween(300))
-            },
-            exitTransition = {
-                slideOutHorizontally(tween(300)) { it } + fadeOut(tween(300))
-            },
-            popEnterTransition = {
-                slideInHorizontally(tween(300)) { -it } + fadeIn(tween(300))
-            },
-            popExitTransition = {
-                slideOutHorizontally(tween(300)) { it } + fadeOut(tween(300))
-            }
+            enterTransition = { slideInHorizontally(tween(300)) { it } + fadeIn(tween(300)) },
+            exitTransition = { slideOutHorizontally(tween(300)) { it } + fadeOut(tween(300)) },
+            popEnterTransition = { slideInHorizontally(tween(300)) { -it } + fadeIn(tween(300)) },
+            popExitTransition = { slideOutHorizontally(tween(300)) { it } + fadeOut(tween(300)) }
         ) { backStack ->
             val gameId = backStack.arguments!!.getInt("gameId")
-            DetailScreen(gameId = gameId, onBack = { navController.popBackStack() })
+            DetailScreen(
+                gameId = gameId,
+                onBack = { navController.popBackStack() },
+                onGameClick = { navController.navigate(Screen.Detail.createRoute(it)) }
+            )
+        }
+        composable(
+            route = Screen.DayReleases.route,
+            arguments = listOf(navArgument("date") { type = NavType.StringType }),
+            enterTransition = { slideInHorizontally(tween(300)) { it } + fadeIn(tween(300)) },
+            exitTransition  = { slideOutHorizontally(tween(300)) { it } + fadeOut(tween(300)) },
+            popEnterTransition  = { slideInHorizontally(tween(300)) { -it } + fadeIn(tween(300)) },
+            popExitTransition   = { slideOutHorizontally(tween(300)) { it } + fadeOut(tween(300)) }
+        ) {
+            DayReleasesScreen(
+                onGameClick = { navController.navigate(Screen.Detail.createRoute(it)) },
+                onBack      = { navController.popBackStack() }
+            )
         }
     }
 }
