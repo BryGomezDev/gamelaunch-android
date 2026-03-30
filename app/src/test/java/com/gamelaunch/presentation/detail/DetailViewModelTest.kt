@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.preferencesOf
 import com.gamelaunch.domain.model.Game
+import com.gamelaunch.data.remote.TranslationService
 import com.gamelaunch.domain.repository.GameRepository
 import com.gamelaunch.domain.usecase.WishlistUseCase
 import com.gamelaunch.notification.NotificationScheduler
@@ -39,6 +40,7 @@ class DetailViewModelTest {
     private val wishlistUseCase: WishlistUseCase = mockk()
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
     private val dataStore: DataStore<Preferences> = mockk()
+    private val translationService: TranslationService = mockk(relaxed = true)
 
     private lateinit var viewModel: DetailViewModel
 
@@ -52,7 +54,7 @@ class DetailViewModelTest {
     fun setup() {
         every { dataStore.data } returns flowOf(preferencesOf())
         coEvery { dataStore.updateData(any()) } returns preferencesOf()
-        viewModel = DetailViewModel(repository, wishlistUseCase, notificationScheduler, dataStore)
+        viewModel = DetailViewModel(repository, wishlistUseCase, notificationScheduler, dataStore, translationService)
     }
 
     @Test

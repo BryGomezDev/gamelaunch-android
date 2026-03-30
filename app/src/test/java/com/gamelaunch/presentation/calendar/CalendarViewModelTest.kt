@@ -9,6 +9,7 @@ import com.gamelaunch.domain.model.Region
 import com.gamelaunch.domain.model.Release
 import com.gamelaunch.domain.repository.GameRepository
 import com.gamelaunch.domain.usecase.GetReleasesUseCase
+import com.gamelaunch.domain.usecase.WishlistUseCase
 import com.gamelaunch.util.MainDispatcherRule
 import io.mockk.clearMocks
 import io.mockk.coEvery
@@ -40,6 +41,7 @@ class CalendarViewModelTest {
 
     private val getReleasesUseCase: GetReleasesUseCase = mockk()
     private val repository: GameRepository = mockk()
+    private val wishlistUseCase: WishlistUseCase = mockk()
     private val dataStore: DataStore<Preferences> = mockk()
 
     private lateinit var viewModel: CalendarViewModel
@@ -61,9 +63,11 @@ class CalendarViewModelTest {
         every { dataStore.data } returns flowOf(preferencesOf())
         coEvery { dataStore.updateData(any()) } returns preferencesOf()
         every { getReleasesUseCase.forMonth(any(), any(), any(), any()) } returns flowOf(emptyList())
+        every { getReleasesUseCase.forMonth(any(), any()) } returns flowOf(emptyList())
         coEvery { repository.syncMonth(any(), any()) } just Runs
+        every { wishlistUseCase.getWishlist() } returns flowOf(emptyList())
 
-        viewModel = CalendarViewModel(getReleasesUseCase, repository, dataStore)
+        viewModel = CalendarViewModel(getReleasesUseCase, repository, wishlistUseCase, dataStore)
     }
 
     @Test
@@ -82,7 +86,7 @@ class CalendarViewModelTest {
         val releases = listOf(fakeRelease(1, today), fakeRelease(2, today))
         every { getReleasesUseCase.forMonth(any(), any(), any(), any()) } returns flowOf(releases)
 
-        viewModel = CalendarViewModel(getReleasesUseCase, repository, dataStore)
+        viewModel = CalendarViewModel(getReleasesUseCase, repository, wishlistUseCase, dataStore)
         advanceUntilIdle()
 
         assertEquals(2, viewModel.uiState.value.releases.size)
@@ -108,7 +112,7 @@ class CalendarViewModelTest {
         val releases = listOf(fakeRelease(1, today), fakeRelease(2, tomorrow))
         every { getReleasesUseCase.forMonth(any(), any(), any(), any()) } returns flowOf(releases)
 
-        viewModel = CalendarViewModel(getReleasesUseCase, repository, dataStore)
+        viewModel = CalendarViewModel(getReleasesUseCase, repository, wishlistUseCase, dataStore)
         advanceUntilIdle()
 
         viewModel.onDaySelected(today)
@@ -162,7 +166,7 @@ class CalendarViewModelTest {
         every { getReleasesUseCase.forMonth(any(), any(), any(), any()) } returns flowOf(releases)
 
         clearMocks(repository, answers = false)
-        viewModel = CalendarViewModel(getReleasesUseCase, repository, dataStore)
+        viewModel = CalendarViewModel(getReleasesUseCase, repository, wishlistUseCase, dataStore)
         advanceUntilIdle()
 
         coVerify(exactly = 0) { repository.syncMonth(any(), any()) }
@@ -199,7 +203,7 @@ class CalendarViewModelTest {
         every { getReleasesUseCase.forMonth(any(), any(), any(), any()) } returns
                 kotlinx.coroutines.flow.flow { throw RuntimeException("DB error") }
 
-        viewModel = CalendarViewModel(getReleasesUseCase, repository, dataStore)
+        viewModel = CalendarViewModel(getReleasesUseCase, repository, wishlistUseCase, dataStore)
         advanceUntilIdle()
 
         assertNotNull(viewModel.uiState.value.error)
