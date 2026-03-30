@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,6 +19,7 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -254,14 +257,6 @@ private fun GameDetailContent(
             }
         }
 
-        // Screenshots LazyRow (full width, no horizontal padding)
-        if (game.screenshots.isNotEmpty()) {
-            Spacer(Modifier.height(4.dp))
-            SectionLabel("Capturas de pantalla", modifier = Modifier.padding(horizontal = 16.dp))
-            Spacer(Modifier.height(8.dp))
-            ScreenshotsRow(screenshots = game.screenshots)
-        }
-
         // Website link
         game.websiteUrl?.let { url ->
             Spacer(Modifier.height(4.dp))
@@ -292,27 +287,42 @@ private fun GameDetailContent(
     }
 }
 
-// ── Hero area ─────────────────────────────────────────────────────────────────
+// ── Hero area (auto-sliding carousel) ────────────────────────────────────────
 
 @Composable
 private fun HeroArea(
     game: Game,
     dateFormatter: DateTimeFormatter
 ) {
-    val heroImage = game.screenshots.firstOrNull() ?: game.coverUrl
+    val images = game.screenshots.ifEmpty { listOfNotNull(game.coverUrl) }
+    val pagerState = rememberPagerState { images.size }
+
+    if (images.size > 1) {
+        LaunchedEffect(pagerState) {
+            while (true) {
+                delay(4_000)
+                pagerState.animateScrollToPage((pagerState.currentPage + 1) % images.size)
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(220.dp)
     ) {
-        // Background image
-        AsyncImage(
-            model = heroImage,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
+        // Sliding screenshots
+        HorizontalPager(
+            state = pagerState,
             modifier = Modifier.fillMaxSize()
-        )
+        ) { page ->
+            AsyncImage(
+                model = images[page],
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
 
         // Gradient bottom
         Box(
@@ -326,6 +336,29 @@ private fun HeroArea(
                     )
                 )
         )
+
+        // Page dots
+        if (images.size > 1) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 76.dp),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                repeat(images.size) { index ->
+                    Box(
+                        modifier = Modifier
+                            .size(if (index == pagerState.currentPage) 7.dp else 5.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (index == pagerState.currentPage) Color.White
+                                else Color.White.copy(alpha = 0.4f)
+                            )
+                    )
+                }
+            }
+        }
 
         // Info row at bottom of hero
         Row(
@@ -461,29 +494,6 @@ private fun TagsRow(tags: List<String>) {
                     Text(text = tag, fontSize = 11.sp, color = TextSecondary)
                 }
             }
-        }
-    }
-}
-
-// ── Screenshots LazyRow ───────────────────────────────────────────────────────
-
-@Composable
-private fun ScreenshotsRow(screenshots: List<String>) {
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(screenshots) { url ->
-            AsyncImage(
-                model = url,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .width(160.dp)
-                    .height(90.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(SurfaceVariant)
-            )
         }
     }
 }
