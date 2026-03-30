@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.gamelaunch.data.local.GameDatabase
 import com.gamelaunch.data.local.GameDatabase.Companion.MIGRATION_1_2
+import com.gamelaunch.data.local.GameDatabase.Companion.MIGRATION_2_3
 import com.gamelaunch.data.local.dao.GameDao
 import dagger.Module
 import dagger.Provides
@@ -20,7 +21,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): GameDatabase =
         Room.databaseBuilder(context, GameDatabase::class.java, "gamelaunch.db")
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
 
     @Provides

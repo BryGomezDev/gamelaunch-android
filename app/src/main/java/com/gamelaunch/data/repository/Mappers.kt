@@ -89,7 +89,8 @@ fun GameEntity.toDomain(releaseDate: LocalDate = LocalDate.now()): Game = Game(
     developers = developers.splitIfNotBlank(),
     publishers = publishers.splitIfNotBlank(),
     websiteUrl = websiteUrl,
-    screenshots = screenshots.splitIfNotBlank()
+    screenshots = screenshots.splitIfNotBlank(),
+    summaryEs = summaryEs
 )
 
 private fun String.splitIfNotBlank(): List<String> =

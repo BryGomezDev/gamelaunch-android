@@ -19,5 +19,6 @@ data class GameEntity(
     val developers: String = "",  // comma-separated
     val publishers: String = "",  // comma-separated
     val websiteUrl: String? = null,
-    val screenshots: String = ""  // comma-separated URLs
+    val screenshots: String = "",  // comma-separated URLs
+    val summaryEs: String? = null  // traducción al español (DeepL)
 )

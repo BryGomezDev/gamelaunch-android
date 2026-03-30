@@ -1,6 +1,7 @@
 package com.gamelaunch.di
 
 import com.gamelaunch.BuildConfig
+import com.gamelaunch.data.remote.DeepLApi
 import com.gamelaunch.data.remote.IgdbApi
 import com.gamelaunch.data.remote.IgdbAuthApi
 import com.gamelaunch.data.remote.IgdbAuthInterceptor
@@ -76,4 +77,32 @@ object NetworkModule {
         .addConverterFactory(MoshiConverterFactory.create(moshi))
         .build()
         .create(IgdbApi::class.java)
+
+    // DeepL client — attaches DeepL-Auth-Key header
+    @Provides
+    @Singleton
+    @Named("deepl")
+    fun provideDeepLOkHttpClient(logging: HttpLoggingInterceptor): OkHttpClient =
+        OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                chain.proceed(
+                    chain.request().newBuilder()
+                        .addHeader("Authorization", "DeepL-Auth-Key ${BuildConfig.DEEPL_API_KEY}")
+                        .build()
+                )
+            }
+            .addInterceptor(logging)
+            .build()
+
+    @Provides
+    @Singleton
+    fun provideDeepLApi(
+        moshi: Moshi,
+        @Named("deepl") client: OkHttpClient
+    ): DeepLApi = Retrofit.Builder()
+        .baseUrl("https://api-free.deepl.com/")
+        .client(client)
+        .addConverterFactory(MoshiConverterFactory.create(moshi))
+        .build()
+        .create(DeepLApi::class.java)
 }

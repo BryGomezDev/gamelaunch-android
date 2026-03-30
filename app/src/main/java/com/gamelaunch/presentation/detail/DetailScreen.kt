@@ -90,6 +90,9 @@ fun DetailScreen(
                 game = state.game!!,
                 notifyDaysAhead = state.notifyDaysAhead,
                 onNotifyDaysSelected = viewModel::setNotifyDaysAhead,
+                isTranslating = state.isTranslating,
+                showOriginalSummary = state.showOriginalSummary,
+                onToggleSummaryLanguage = viewModel::toggleSummaryLanguage,
                 modifier = Modifier.padding(top = padding.calculateTopPadding())
             )
         }
@@ -102,6 +105,9 @@ private fun GameDetailContent(
     game: Game,
     notifyDaysAhead: Int?,
     onNotifyDaysSelected: (Int) -> Unit,
+    isTranslating: Boolean,
+    showOriginalSummary: Boolean,
+    onToggleSummaryLanguage: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uriHandler = LocalUriHandler.current
@@ -256,17 +262,57 @@ private fun GameDetailContent(
         }
 
         // ── Descripción ───────────────────────────────────────────────────
-        game.summary?.let { summary ->
+        if (!game.summary.isNullOrBlank()) {
             Spacer(Modifier.height(16.dp))
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                Text(
-                    "Descripción",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        "Descripción",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    when {
+                        isTranslating -> {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(12.dp),
+                                    strokeWidth = 1.5.dp
+                                )
+                                Text(
+                                    "Traduciendo…",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        game.summaryEs != null -> {
+                            TextButton(
+                                onClick = onToggleSummaryLanguage,
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                            ) {
+                                Text(
+                                    if (showOriginalSummary) "Ver en español" else "Ver original",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        }
+                    }
+                }
                 Spacer(Modifier.height(6.dp))
+                val displaySummary = if (!showOriginalSummary && game.summaryEs != null) {
+                    game.summaryEs
+                } else {
+                    game.summary
+                }
                 Text(
-                    text = summary,
+                    text = displaySummary ?: "",
                     style = MaterialTheme.typography.bodySmall,
                     lineHeight = 20.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

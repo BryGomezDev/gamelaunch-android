@@ -10,7 +10,7 @@ import com.gamelaunch.data.local.entity.ReleaseEntity
 
 @Database(
     entities = [GameEntity::class, ReleaseEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class GameDatabase : RoomDatabase() {
@@ -25,6 +25,12 @@ abstract class GameDatabase : RoomDatabase() {
                 database.execSQL("ALTER TABLE games ADD COLUMN publishers TEXT NOT NULL DEFAULT ''")
                 database.execSQL("ALTER TABLE games ADD COLUMN websiteUrl TEXT")
                 database.execSQL("ALTER TABLE games ADD COLUMN screenshots TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE games ADD COLUMN summaryEs TEXT")
             }
         }
     }

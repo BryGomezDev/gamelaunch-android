@@ -174,6 +174,9 @@ class GameRepositoryImpl @Inject constructor(
             ?.map { "https:" + it.replace("t_thumb", "t_screenshot_big") } ?: emptyList()
     )
 
+    override suspend fun saveTranslation(gameId: Int, summaryEs: String) =
+        gameDao.updateSummaryEs(gameId, summaryEs)
+
     private fun Game.toEntity() = GameEntity(
         id = id,
         name = name,
@@ -186,6 +189,7 @@ class GameRepositoryImpl @Inject constructor(
         developers = developers.joinToString(","),
         publishers = publishers.joinToString(","),
         websiteUrl = websiteUrl,
-        screenshots = screenshots.joinToString(",")
+        screenshots = screenshots.joinToString(","),
+        summaryEs = summaryEs
     )
 }

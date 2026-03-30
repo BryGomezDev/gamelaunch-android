@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gamelaunch.data.remote.TranslationService
 import com.gamelaunch.domain.model.Game
 import com.gamelaunch.domain.repository.GameRepository
 import com.gamelaunch.domain.usecase.WishlistUseCase
@@ -21,7 +22,9 @@ data class DetailUiState(
     val isWishlisted: Boolean = false,
     val notifyDaysAhead: Int? = null,
     val isLoading: Boolean = true,
-    val error: String? = null
+    val error: String? = null,
+    val isTranslating: Boolean = false,
+    val showOriginalSummary: Boolean = false
 )
 
 @HiltViewModel
@@ -29,7 +32,8 @@ class DetailViewModel @Inject constructor(
     private val repository: GameRepository,
     private val wishlistUseCase: WishlistUseCase,
     private val notificationScheduler: NotificationScheduler,
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
+    private val translationService: TranslationService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DetailUiState())
@@ -45,11 +49,43 @@ class DetailViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(game = game, isWishlisted = wishlisted, isLoading = false, notifyDaysAhead = savedDays)
                 }
+                // Auto-translate on first load if no cached translation exists
+                if (game != null && game.summaryEs == null && !game.summary.isNullOrBlank()) {
+                    translateSummary(game)
+                }
             } catch (e: Exception) {
                 Sentry.captureException(e)
                 _uiState.update { it.copy(isLoading = false, error = "No se pudo cargar el juego: ${e.message}") }
             }
         }
+    }
+
+    fun translateSummary(game: Game? = _uiState.value.game) {
+        if (game == null || !translationService.isConfigured || game.summary.isNullOrBlank()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isTranslating = true) }
+            try {
+                val translated = translationService.translateToSpanish(game.summary!!)
+                if (translated != null) {
+                    repository.saveTranslation(game.id, translated)
+                    _uiState.update { state ->
+                        state.copy(
+                            game = state.game?.copy(summaryEs = translated),
+                            isTranslating = false
+                        )
+                    }
+                } else {
+                    _uiState.update { it.copy(isTranslating = false) }
+                }
+            } catch (e: Exception) {
+                Sentry.captureException(e)
+                _uiState.update { it.copy(isTranslating = false) }
+            }
+        }
+    }
+
+    fun toggleSummaryLanguage() {
+        _uiState.update { it.copy(showOriginalSummary = !it.showOriginalSummary) }
     }
 
     fun toggleWishlist() {

@@ -80,4 +80,7 @@ interface GameDao {
 
     @Query("DELETE FROM releases WHERE dateEpoch >= :startEpoch AND dateEpoch <= :endEpoch")
     suspend fun deleteReleasesForRange(startEpoch: Long, endEpoch: Long)
+
+    @Query("UPDATE games SET summaryEs = :summaryEs WHERE id = :id")
+    suspend fun updateSummaryEs(id: Int, summaryEs: String)
 }

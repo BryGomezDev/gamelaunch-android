@@ -31,6 +31,7 @@ android {
         buildConfigField("String", "IGDB_CLIENT_ID",     "\"${localProps.getProperty("IGDB_CLIENT_ID",     "")}\"")
         buildConfigField("String", "IGDB_CLIENT_SECRET", "\"${localProps.getProperty("IGDB_CLIENT_SECRET", "")}\"")
         buildConfigField("String", "SENTRY_DSN",         "\"${localProps.getProperty("SENTRY_DSN",         "")}\"")
+        buildConfigField("String", "DEEPL_API_KEY",      "\"${localProps.getProperty("DEEPL_API_KEY",      "")}\"")
     }
 
     buildTypes {

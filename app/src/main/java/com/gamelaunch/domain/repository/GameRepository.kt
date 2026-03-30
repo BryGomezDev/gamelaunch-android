@@ -18,4 +18,6 @@ interface GameRepository {
     suspend fun syncMonth(year: Int, month: Int)
     /** Inserts hardcoded releases for the current month — bypasses IGDB entirely. */
     suspend fun seedTestData()
+    /** Persists a translated summary for a game. */
+    suspend fun saveTranslation(gameId: Int, summaryEs: String)
 }
