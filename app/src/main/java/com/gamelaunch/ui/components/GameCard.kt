@@ -52,13 +52,27 @@ fun GameCard(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-            // Platform badge — top-left
-            Box(
+            // Platform badge(s) — top-left
+            // If game has aggregated platforms (grouped view), show up to 2; else single release platform
+            val platformsToShow = game.platforms.ifEmpty { listOf(release.platform) }
+            Row(
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .padding(6.dp)
+                    .padding(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
             ) {
-                PlatformChip(platform = release.platform, small = true)
+                platformsToShow.take(2).forEach { platform ->
+                    PlatformChip(platform = platform, small = true)
+                }
+                if (platformsToShow.size > 2) {
+                    Box(
+                        modifier = Modifier
+                            .background(SurfaceVariant, androidx.compose.foundation.shape.RoundedCornerShape(20.dp))
+                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                    ) {
+                        Text("+${platformsToShow.size - 2}", fontSize = 9.sp, color = TextHint)
+                    }
+                }
             }
         }
 

@@ -43,7 +43,7 @@ fun DayReleasesScreen(
         topBar = {
             DayReleasesTopBar(
                 date = state.date,
-                releaseCount = state.filteredReleases.size,
+                releaseCount = state.groupedReleases.size,
                 availablePlatforms = state.availablePlatforms,
                 selectedPlatform = state.platformFilter,
                 onPlatformSelect = viewModel::onPlatformFilter,
@@ -58,7 +58,7 @@ fun DayReleasesScreen(
             ) {
                 CircularProgressIndicator(color = Accent)
             }
-        } else if (state.filteredReleases.isEmpty()) {
+        } else if (state.groupedReleases.isEmpty()) {
             Box(
                 Modifier
                     .fillMaxSize()
@@ -92,7 +92,7 @@ fun DayReleasesScreen(
                     .fillMaxSize()
                     .background(Background)
             ) {
-                items(state.filteredReleases, key = { it.id }) { release ->
+                items(state.groupedReleases, key = { it.game.id }) { release ->
                     GameCard(
                         release = release,
                         onClick = { onGameClick(release.game.id) }

@@ -17,9 +17,20 @@ data class DayReleasesUiState(
     val platformFilter: Platform? = null,
     val isLoading: Boolean = true
 ) {
-    val filteredReleases: List<Release>
-        get() = if (platformFilter == null) allReleases
-                else allReleases.filter { it.platform == platformFilter }
+    /** One entry per unique game, with all its platforms aggregated. */
+    val groupedReleases: List<Release>
+        get() {
+            val source = if (platformFilter == null) allReleases
+                         else allReleases.filter { it.platform == platformFilter }
+            return source
+                .groupBy { it.game.id }
+                .values
+                .map { group ->
+                    val allPlatforms = group.map { it.platform }.distinct()
+                    group.first().copy(game = group.first().game.copy(platforms = allPlatforms))
+                }
+                .sortedBy { it.game.name }
+        }
 
     val availablePlatforms: List<Platform>
         get() = allReleases.map { it.platform }.distinct().sortedBy { it.displayName }
