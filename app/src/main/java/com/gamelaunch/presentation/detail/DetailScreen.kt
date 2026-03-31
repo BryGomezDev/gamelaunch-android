@@ -6,6 +6,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -31,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
@@ -173,7 +177,7 @@ private fun GameDetailContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Platform chips
             if (game.platforms.isNotEmpty()) {
@@ -194,7 +198,8 @@ private fun GameDetailContent(
                     onClick = { /* wishlist handled by overlay button */ },
                     border = androidx.compose.foundation.BorderStroke(1.dp, Accent),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Accent),
-                    modifier = Modifier.weight(1f)
+                    shape = RoundedCornerShape(24.dp),
+                    modifier = Modifier.weight(1f).height(44.dp)
                 ) {
                     Text(if (isWishlisted) "En mi lista" else "Mi lista", fontSize = 13.sp)
                 }
@@ -205,7 +210,8 @@ private fun GameDetailContent(
                         containerColor = Accent,
                         contentColor = TextPrimary
                     ),
-                    modifier = Modifier.weight(1f)
+                    shape = RoundedCornerShape(24.dp),
+                    modifier = Modifier.weight(1f).height(44.dp)
                 ) {
                     Text(
                         if (notifyDaysAhead != null) "Notif. $notifyDaysAhead d." else "Notificarme",
@@ -250,34 +256,49 @@ private fun GameDetailContent(
                 )
             }
 
-            // Tags LazyRow
-            val allTags = (game.gameModes + game.genres + game.themes).distinct()
-            if (allTags.isNotEmpty()) {
-                TagsRow(tags = allTags)
+            // Info: desarrollador, distribuidor
+            if (game.developers.isNotEmpty() || game.publishers.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (game.developers.isNotEmpty()) {
+                        InfoRow(
+                            icon = Icons.Default.Code,
+                            label = if (game.developers.size > 1) "Desarrolladores" else "Desarrolladora",
+                            value = game.developers.joinToString(", ")
+                        )
+                    }
+                    if (game.publishers.isNotEmpty()) {
+                        InfoRow(
+                            icon = Icons.Default.Business,
+                            label = if (game.publishers.size > 1) "Distribuidoras" else "Distribuidora",
+                            value = game.publishers.joinToString(", ")
+                        )
+                    }
+                }
             }
-        }
 
-        // Website link
-        game.websiteUrl?.let { url ->
-            Spacer(Modifier.height(4.dp))
-            Row(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .clickable { uriHandler.openUri(url) },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    "Sitio web oficial →",
-                    fontSize = 13.sp,
-                    color = Accent
-                )
+            // Tags: modo de juego / géneros + temas
+            if (game.gameModes.isNotEmpty()) {
+                TagsSection(label = "Modo de juego", tags = game.gameModes)
+            }
+            val etiquetas = (game.genres + game.themes).distinct()
+            if (etiquetas.isNotEmpty()) {
+                TagsSection(label = "Etiquetas", tags = etiquetas)
+            }
+
+            // Website link
+            game.websiteUrl?.let { url ->
+                Row(
+                    modifier = Modifier.clickable { uriHandler.openUri(url) },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Sitio web oficial →", fontSize = 13.sp, color = Accent)
+                }
             }
         }
 
         // Related games LazyRow
         if (game.similarGames.isNotEmpty()) {
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(8.dp))
             SectionLabel("Juegos relacionados", modifier = Modifier.padding(horizontal = 16.dp))
             Spacer(Modifier.height(8.dp))
             RelatedGamesRow(games = game.similarGames, onGameClick = onGameClick)
@@ -478,12 +499,41 @@ private fun DescriptionSection(
     }
 }
 
-// ── Tags LazyRow ──────────────────────────────────────────────────────────────
+// ── Info row (icon + label + value) ──────────────────────────────────────────
 
 @Composable
-private fun TagsRow(tags: List<String>) {
+private fun InfoRow(icon: ImageVector, label: String, value: String) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = TextHint,
+            modifier = Modifier.size(16.dp).padding(top = 2.dp)
+        )
+        Text(
+            text = "$label: ",
+            fontSize = 12.sp,
+            color = TextHint
+        )
+        Text(
+            text = value,
+            fontSize = 12.sp,
+            color = TextSecondary,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+// ── Tags section (label + chips) ─────────────────────────────────────────────
+
+@Composable
+private fun TagsSection(label: String, tags: List<String>) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        SectionLabel("Etiquetas", modifier = Modifier.padding(horizontal = 0.dp))
+        SectionLabel(label, modifier = Modifier.padding(horizontal = 0.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             items(tags) { tag ->
                 Box(
@@ -509,7 +559,7 @@ private fun RelatedGamesRow(games: List<SimilarGame>, onGameClick: (Int) -> Unit
         items(games) { game ->
             Column(
                 modifier = Modifier
-                    .width(86.dp)
+                    .width(100.dp)
                     .clickable { onGameClick(game.id) },
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -519,14 +569,14 @@ private fun RelatedGamesRow(games: List<SimilarGame>, onGameClick: (Int) -> Unit
                     contentDescription = game.name,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .width(86.dp)
-                        .height(114.dp)
+                        .width(100.dp)
+                        .height(130.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(SurfaceVariant)
                 )
                 Text(
                     text = game.name,
-                    fontSize = 10.sp,
+                    fontSize = 11.sp,
                     color = TextSecondary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -543,9 +593,10 @@ private fun RelatedGamesRow(games: List<SimilarGame>, onGameClick: (Int) -> Unit
 private fun SectionLabel(title: String, modifier: Modifier = Modifier) {
     Text(
         text = title,
-        fontSize = 14.sp,
-        fontWeight = FontWeight.Bold,
-        color = TextPrimary,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Medium,
+        color = TextHint,
+        letterSpacing = 0.08.em,
         modifier = modifier
     )
 }

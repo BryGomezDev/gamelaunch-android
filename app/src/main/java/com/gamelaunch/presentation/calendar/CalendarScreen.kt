@@ -95,14 +95,6 @@ fun CalendarScreen(
                     )
                 }
 
-                // ── Region filter ─────────────────────────────────────────
-                item {
-                    RegionFilterRow(
-                        selected = state.regionFilter,
-                        onSelect = viewModel::onRegionFilter
-                    )
-                }
-
                 // ── Month header + calendar ───────────────────────────────
                 item {
                     MonthHeader(

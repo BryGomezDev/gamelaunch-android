@@ -40,10 +40,10 @@ val GameLaunchTypography = Typography(
     titleLarge = TextStyle(
         fontWeight    = FontWeight.Bold,
         fontSize      = 22.sp,
-        letterSpacing = (-0.3).sp
+        letterSpacing = (-0.5).sp
     ),
     titleMedium = TextStyle(
-        fontWeight    = FontWeight.Bold,
+        fontWeight    = FontWeight.SemiBold,
         fontSize      = 16.sp,
         letterSpacing = (-0.3).sp
     ),
@@ -60,7 +60,7 @@ val GameLaunchTypography = Typography(
     bodyMedium = TextStyle(
         fontWeight    = FontWeight.Normal,
         fontSize      = 14.sp,
-        lineHeight    = (1.6).em
+        lineHeight    = 22.sp
     ),
     bodySmall = TextStyle(
         fontWeight    = FontWeight.Normal,
@@ -76,7 +76,8 @@ val GameLaunchTypography = Typography(
         fontSize   = 12.sp
     ),
     labelSmall = TextStyle(
-        fontWeight = FontWeight.Normal,
-        fontSize   = 11.sp
+        fontWeight    = FontWeight.Medium,
+        fontSize      = 11.sp,
+        letterSpacing = 0.06.sp
     ),
 )
