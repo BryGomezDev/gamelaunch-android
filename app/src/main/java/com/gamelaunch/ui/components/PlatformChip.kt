@@ -1,15 +1,21 @@
 package com.gamelaunch.ui.components
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.gamelaunch.R
 import com.gamelaunch.domain.model.Platform
 import com.gamelaunch.ui.theme.PlatformPS
 import com.gamelaunch.ui.theme.PlatformPSBg
@@ -22,39 +28,61 @@ import com.gamelaunch.ui.theme.PlatformXboxBg
 import com.gamelaunch.ui.theme.SurfaceVariant
 import com.gamelaunch.ui.theme.TextSecondary
 
-private data class PlatformColors(val bg: Color, val text: Color)
+private data class PlatformStyle(
+    @DrawableRes val iconRes: Int,
+    val fgColor: Color,
+    val bgColor: Color,
+    val label: String
+)
 
-private fun platformColors(platform: Platform): PlatformColors = when (platform) {
-    Platform.STEAM                          -> PlatformColors(PlatformSteamBg, PlatformSteam)
+private fun platformStyle(platform: Platform): PlatformStyle = when (platform) {
+    Platform.STEAM ->
+        PlatformStyle(R.drawable.ic_platform_steam, PlatformSteam, PlatformSteamBg, platform.displayName)
     Platform.PLAYSTATION_5,
-    Platform.PLAYSTATION_4                  -> PlatformColors(PlatformPSBg, PlatformPS)
+    Platform.PLAYSTATION_4 ->
+        PlatformStyle(R.drawable.ic_platform_ps, PlatformPS, PlatformPSBg, platform.displayName)
     Platform.XBOX_SERIES,
-    Platform.XBOX_ONE                       -> PlatformColors(PlatformXboxBg, PlatformXbox)
-    Platform.NINTENDO_SWITCH                -> PlatformColors(PlatformSwitchBg, PlatformSwitch)
+    Platform.XBOX_ONE ->
+        PlatformStyle(R.drawable.ic_platform_xbox, PlatformXbox, PlatformXboxBg, platform.displayName)
+    Platform.NINTENDO_SWITCH ->
+        PlatformStyle(R.drawable.ic_platform_switch, PlatformSwitch, PlatformSwitchBg, platform.displayName)
 }
 
 @Composable
 fun PlatformChip(
     platform: Platform,
     modifier: Modifier = Modifier,
-    small: Boolean = false
+    showLabel: Boolean = true
 ) {
-    val colors = platformColors(platform)
-    val hPad = if (small) 6.dp else 10.dp
-    val vPad = if (small) 2.dp else 4.dp
-    val textSize = if (small) 9.sp else 11.sp
+    val style = platformStyle(platform)
 
-    Box(
-        modifier = modifier
-            .background(colors.bg, RoundedCornerShape(20.dp))
-            .padding(horizontal = hPad, vertical = vPad)
-    ) {
-        Text(
-            text = platform.displayName,
-            color = colors.text,
-            fontSize = textSize,
-            maxLines = 1
-        )
+    if (showLabel) {
+        Box(
+            modifier = modifier
+                .background(style.bgColor, RoundedCornerShape(20.dp))
+                .padding(horizontal = 10.dp, vertical = 4.dp)
+        ) {
+            Text(
+                text = style.label,
+                color = style.fgColor,
+                fontSize = 11.sp,
+                maxLines = 1
+            )
+        }
+    } else {
+        Box(
+            modifier = modifier
+                .size(22.dp)
+                .background(style.bgColor, RoundedCornerShape(6.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(style.iconRes),
+                contentDescription = style.label,
+                tint = style.fgColor,
+                modifier = Modifier.size(14.dp)
+            )
+        }
     }
 }
 

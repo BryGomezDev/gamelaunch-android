@@ -55,7 +55,7 @@ fun WeekCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 platforms.take(2).forEach { platform ->
-                    PlatformChip(platform = platform, small = true)
+                    PlatformChip(platform = platform, showLabel = false)
                 }
                 if (platforms.size > 2) {
                     Text(

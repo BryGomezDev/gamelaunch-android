@@ -62,7 +62,7 @@ fun GameCard(
                 horizontalArrangement = Arrangement.spacedBy(3.dp)
             ) {
                 platformsToShow.take(2).forEach { platform ->
-                    PlatformChip(platform = platform, small = true)
+                    PlatformChip(platform = platform, showLabel = false)
                 }
                 if (platformsToShow.size > 2) {
                     Box(

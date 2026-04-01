@@ -134,8 +134,7 @@ fun ProfileScreen(
                     FilterChip(
                         selected = isSelected,
                         onClick = {
-                            viewModel.setLanguage(code)
-                            activity.recreate()
+                            viewModel.setLanguage(code) { activity.recreate() }
                         },
                         label = { Text(name, fontSize = 13.sp) },
                         colors = FilterChipDefaults.filterChipColors(

@@ -171,7 +171,7 @@ private fun DayReleasesTopBar(
                         val isSelected = selectedPlatform == platform
                         PlatformChip(
                             platform = platform,
-                            small = true,
+                            showLabel = false,
                             modifier = Modifier
                                 .border(
                                     width = if (isSelected) 1.5.dp else 0.dp,

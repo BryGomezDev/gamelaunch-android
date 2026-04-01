@@ -42,8 +42,11 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { dataStore.edit { it[REGION_KEY] = region.igdbId } }
     }
 
-    fun setLanguage(lang: String) {
-        viewModelScope.launch { dataStore.edit { it[LANGUAGE_KEY] = lang } }
+    fun setLanguage(lang: String, onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            dataStore.edit { it[LANGUAGE_KEY] = lang }
+            onComplete()
+        }
     }
 
     companion object {
