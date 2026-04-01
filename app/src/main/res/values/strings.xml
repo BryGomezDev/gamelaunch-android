@@ -1,4 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">GameLaunch</string>
+    <string name="app_name">Kronos · Gamer\'s Planner</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_wishlist">My List</string>
+    <string name="nav_profile">Profile</string>
+    <string name="this_week">This week</string>
+    <string name="featured">Featured releases</string>
+    <string name="description">Description</string>
+    <string name="game_mode">Game mode</string>
+    <string name="tags">Tags</string>
+    <string name="related_games">Related games</string>
+    <string name="add_to_list">My list</string>
+    <string name="notify_me">Notify me</string>
+    <string name="releases_today">releases</string>
+    <string name="no_releases">No releases this day</string>
+    <string name="language">Language</string>
+    <string name="language_es">Español</string>
+    <string name="language_en">English</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_region">Region</string>
+    <string name="view_original">View original</string>
+    <string name="view_translated">View translated</string>
 </resources>

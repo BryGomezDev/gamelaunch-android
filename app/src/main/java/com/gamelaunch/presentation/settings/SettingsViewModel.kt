@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gamelaunch.domain.model.Region
@@ -14,7 +15,8 @@ import javax.inject.Inject
 
 data class SettingsUiState(
     val notifyDaysAhead: Int = 1,
-    val preferredRegion: Region = Region.WORLDWIDE
+    val preferredRegion: Region = Region.WORLDWIDE,
+    val language: String = "es"
 )
 
 @HiltViewModel
@@ -26,7 +28,8 @@ class SettingsViewModel @Inject constructor(
         .map { prefs ->
             SettingsUiState(
                 notifyDaysAhead = prefs[NOTIFY_KEY] ?: 1,
-                preferredRegion = Region.fromId(prefs[REGION_KEY] ?: Region.WORLDWIDE.igdbId)
+                preferredRegion = Region.fromId(prefs[REGION_KEY] ?: Region.WORLDWIDE.igdbId),
+                language = prefs[LANGUAGE_KEY] ?: "es"
             )
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsUiState())
@@ -39,8 +42,13 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { dataStore.edit { it[REGION_KEY] = region.igdbId } }
     }
 
+    fun setLanguage(lang: String) {
+        viewModelScope.launch { dataStore.edit { it[LANGUAGE_KEY] = lang } }
+    }
+
     companion object {
-        val NOTIFY_KEY = intPreferencesKey("notify_days_ahead")
-        val REGION_KEY = intPreferencesKey("preferred_region")
+        val NOTIFY_KEY    = intPreferencesKey("notify_days_ahead")
+        val REGION_KEY    = intPreferencesKey("preferred_region")
+        val LANGUAGE_KEY  = stringPreferencesKey("language")
     }
 }

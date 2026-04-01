@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Kronos · Gamer\'s Planner</string>
+    <string name="nav_home">Inicio</string>
+    <string name="nav_search">Buscar</string>
+    <string name="nav_wishlist">Mi lista</string>
+    <string name="nav_profile">Perfil</string>
+    <string name="this_week">Esta semana</string>
+    <string name="featured">Próximos destacados</string>
+    <string name="description">Descripción</string>
+    <string name="game_mode">Modo de juego</string>
+    <string name="tags">Etiquetas</string>
+    <string name="related_games">Juegos relacionados</string>
+    <string name="add_to_list">Mi lista</string>
+    <string name="notify_me">Notificarme</string>
+    <string name="releases_today">lanzamientos</string>
+    <string name="no_releases">Sin lanzamientos este día</string>
+    <string name="language">Idioma</string>
+    <string name="language_es">Español</string>
+    <string name="language_en">English</string>
+    <string name="settings_notifications">Notificaciones</string>
+    <string name="settings_region">Región</string>
+    <string name="view_original">Ver original</string>
+    <string name="view_translated">Ver traducido</string>
+</resources>

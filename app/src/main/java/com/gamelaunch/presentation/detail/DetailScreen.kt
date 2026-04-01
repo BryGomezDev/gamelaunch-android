@@ -38,6 +38,8 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import androidx.compose.ui.res.stringResource
+import com.gamelaunch.R
 import com.gamelaunch.domain.model.Game
 import com.gamelaunch.domain.model.SimilarGame
 import com.gamelaunch.ui.components.PlatformChip
@@ -87,6 +89,7 @@ fun DetailScreen(
                     isTranslating = state.isTranslating,
                     showOriginalSummary = state.showOriginalSummary,
                     onToggleSummaryLanguage = viewModel::toggleSummaryLanguage,
+                    language = state.language,
                     onGameClick = onGameClick
                 )
                 // Overlaid nav buttons — always on top
@@ -158,6 +161,7 @@ private fun GameDetailContent(
     isTranslating: Boolean,
     showOriginalSummary: Boolean,
     onToggleSummaryLanguage: () -> Unit,
+    language: String,
     onGameClick: (Int) -> Unit
 ) {
     val uriHandler = LocalUriHandler.current
@@ -201,7 +205,11 @@ private fun GameDetailContent(
                     shape = RoundedCornerShape(24.dp),
                     modifier = Modifier.weight(1f).height(44.dp)
                 ) {
-                    Text(if (isWishlisted) "En mi lista" else "Mi lista", fontSize = 13.sp)
+                    Text(
+                        if (isWishlisted) "✓ ${stringResource(R.string.add_to_list)}"
+                        else stringResource(R.string.add_to_list),
+                        fontSize = 13.sp
+                    )
                 }
                 // Notificarme — filled
                 Button(
@@ -214,7 +222,8 @@ private fun GameDetailContent(
                     modifier = Modifier.weight(1f).height(44.dp)
                 ) {
                     Text(
-                        if (notifyDaysAhead != null) "Notif. $notifyDaysAhead d." else "Notificarme",
+                        if (notifyDaysAhead != null) "✓ ${stringResource(R.string.notify_me)} $notifyDaysAhead d."
+                        else stringResource(R.string.notify_me),
                         fontSize = 13.sp
                     )
                 }
@@ -252,7 +261,8 @@ private fun GameDetailContent(
                     game = game,
                     isTranslating = isTranslating,
                     showOriginalSummary = showOriginalSummary,
-                    onToggleSummaryLanguage = onToggleSummaryLanguage
+                    onToggleSummaryLanguage = onToggleSummaryLanguage,
+                    language = language
                 )
             }
 
@@ -278,11 +288,11 @@ private fun GameDetailContent(
 
             // Tags: modo de juego / géneros + temas
             if (game.gameModes.isNotEmpty()) {
-                TagsSection(label = "Modo de juego", tags = game.gameModes)
+                TagsSection(label = stringResource(R.string.game_mode), tags = game.gameModes)
             }
             val etiquetas = (game.genres + game.themes).distinct()
             if (etiquetas.isNotEmpty()) {
-                TagsSection(label = "Etiquetas", tags = etiquetas)
+                TagsSection(label = stringResource(R.string.tags), tags = etiquetas)
             }
 
             // Website link
@@ -299,7 +309,7 @@ private fun GameDetailContent(
         // Related games LazyRow
         if (game.similarGames.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
-            SectionLabel("Juegos relacionados", modifier = Modifier.padding(horizontal = 16.dp))
+            SectionLabel(stringResource(R.string.related_games), modifier = Modifier.padding(horizontal = 16.dp))
             Spacer(Modifier.height(8.dp))
             RelatedGamesRow(games = game.similarGames, onGameClick = onGameClick)
         }
@@ -460,7 +470,8 @@ private fun DescriptionSection(
     game: Game,
     isTranslating: Boolean,
     showOriginalSummary: Boolean,
-    onToggleSummaryLanguage: () -> Unit
+    onToggleSummaryLanguage: () -> Unit,
+    language: String
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(
@@ -468,21 +479,22 @@ private fun DescriptionSection(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            SectionLabel("Descripción")
+            SectionLabel(stringResource(R.string.description))
             when {
-                isTranslating -> Row(
+                isTranslating && language == "es" -> Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     CircularProgressIndicator(Modifier.size(12.dp), strokeWidth = 1.5.dp, color = Accent)
                     Text("Traduciendo…", fontSize = 11.sp, color = TextHint)
                 }
-                game.summaryEs != null -> TextButton(
+                language == "es" && game.summaryEs != null -> TextButton(
                     onClick = onToggleSummaryLanguage,
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                 ) {
                     Text(
-                        if (showOriginalSummary) "Ver en español" else "Ver original",
+                        if (showOriginalSummary) stringResource(R.string.view_translated)
+                        else stringResource(R.string.view_original),
                         fontSize = 11.sp,
                         color = Accent
                     )

@@ -1,5 +1,7 @@
 package com.gamelaunch
 
+import android.content.Context
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -17,18 +19,24 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.gamelaunch.di.appDataStore
 import com.gamelaunch.presentation.navigation.AppNavGraph
 import com.gamelaunch.presentation.navigation.Screen
-import com.gamelaunch.presentation.navigation.tabRoutes
+import com.gamelaunch.presentation.settings.SettingsViewModel.Companion.LANGUAGE_KEY
 import com.gamelaunch.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import java.util.Locale
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -38,9 +46,24 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun attachBaseContext(base: Context) {
+        val lang = runBlocking {
+            base.appDataStore.data.first()[LANGUAGE_KEY] ?: "es"
+        }
+        val locale = Locale(lang)
+        Locale.setDefault(locale)
+        val config = Configuration(base.resources.configuration)
+        config.setLocale(locale)
+        super.attachBaseContext(base.createConfigurationContext(config))
+    }
 }
 
-private data class NavItem(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
+private data class NavItem(
+    val route: String,
+    val label: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector
+)
 
 @Composable
 private fun MainScaffold() {
@@ -49,10 +72,10 @@ private fun MainScaffold() {
     val currentRoute = backStackEntry?.destination?.route
 
     val bottomItems = listOf(
-        NavItem(Screen.Calendar.route, "Inicio",   Icons.Default.Home),
-        NavItem(Screen.Search.route,   "Buscar",   Icons.Default.Search),
-        NavItem(Screen.Wishlist.route, "Mi lista", Icons.Default.Favorite),
-        NavItem(Screen.Profile.route,  "Perfil",   Icons.Default.Person)
+        NavItem(Screen.Calendar.route, stringResource(R.string.nav_home),     Icons.Default.Home),
+        NavItem(Screen.Search.route,   stringResource(R.string.nav_search),   Icons.Default.Search),
+        NavItem(Screen.Wishlist.route, stringResource(R.string.nav_wishlist), Icons.Default.Favorite),
+        NavItem(Screen.Profile.route,  stringResource(R.string.nav_profile),  Icons.Default.Person)
     )
 
     val showBottomBar = bottomItems.any { it.route == currentRoute }

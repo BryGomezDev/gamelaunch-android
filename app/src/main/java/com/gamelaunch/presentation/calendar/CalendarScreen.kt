@@ -23,14 +23,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.gamelaunch.BuildConfig
+import com.gamelaunch.R
 import com.gamelaunch.domain.model.Platform
-import com.gamelaunch.domain.model.Region
 import com.gamelaunch.domain.model.Release
 import com.gamelaunch.ui.components.HeroCard
 import com.gamelaunch.ui.components.WeekCard
@@ -130,9 +131,7 @@ fun CalendarScreen(
                 // ── Esta semana ───────────────────────────────────────────
                 if (state.weekReleases.isNotEmpty()) {
                     item { SectionDivider() }
-                    item {
-                        SectionHeader("Esta semana")
-                    }
+                    item { SectionHeader(stringResource(R.string.this_week)) }
                     item {
                         WeekRow(
                             releases = state.weekReleases,
@@ -144,9 +143,7 @@ fun CalendarScreen(
                 // ── Próximos destacados ───────────────────────────────────
                 if (state.featuredReleases.isNotEmpty()) {
                     item { SectionDivider() }
-                    item {
-                        SectionHeader("Próximos destacados")
-                    }
+                    item { SectionHeader(stringResource(R.string.featured)) }
                     item {
                         FeaturedRow(
                             releases = state.featuredReleases,
@@ -178,11 +175,32 @@ private fun CalendarTopBar(
             .padding(horizontal = 16.dp)
             .padding(top = 12.dp, bottom = 8.dp)
     ) {
+        // ── Brand ─────────────────────────────────────────────────────────
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 10.dp)
+        ) {
+            Text(
+                text = "KRONOS",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 3.sp,
+                color = Color.White
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = "· Gamer's Planner",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Normal,
+                color = Color(0xFF888888)
+            )
+        }
+
+        // ── Search row ────────────────────────────────────────────────────
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Search bar (tap-only, navigates to SearchScreen)
             Row(
                 modifier = Modifier
                     .weight(1f)
@@ -199,13 +217,8 @@ private fun CalendarTopBar(
                     tint = TextHint,
                     modifier = Modifier.size(18.dp)
                 )
-                Text(
-                    text = "Buscar juegos…",
-                    fontSize = 14.sp,
-                    color = TextHint
-                )
+                Text(text = "Buscar juegos…", fontSize = 14.sp, color = TextHint)
             }
-            // Notifications
             Box(
                 modifier = Modifier
                     .size(42.dp)
@@ -219,7 +232,6 @@ private fun CalendarTopBar(
                     modifier = Modifier.size(20.dp)
                 )
             }
-            // Debug seed button
             if (onDebugSeed != null) {
                 IconButton(onClick = onDebugSeed) {
                     Icon(Icons.Default.BugReport, contentDescription = "Seed", tint = TextHint)
@@ -264,49 +276,11 @@ private fun PlatformFilterChip(label: String, isSelected: Boolean, onClick: () -
     }
 }
 
-// ── Region filter ─────────────────────────────────────────────────────────────
-
-@Composable
-private fun RegionFilterRow(selected: Region?, onSelect: (Region?) -> Unit) {
-    val regions = listOf(
-        Region.WORLDWIDE, Region.EUROPE, Region.NORTH_AMERICA,
-        Region.JAPAN, Region.ASIA, Region.AUSTRALIA, Region.BRAZIL, Region.KOREA
-    )
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        item { RegionFilterChip("Todas", selected == null) { onSelect(null) } }
-        items(regions) { region ->
-            RegionFilterChip(region.displayName, selected == region) { onSelect(region) }
-        }
-    }
-}
-
-@Composable
-private fun RegionFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .background(
-                if (isSelected) AccentDim else Color.Transparent,
-                RoundedCornerShape(20.dp)
-            )
-            .border(0.5.dp, if (isSelected) Accent else BorderSubtle, RoundedCornerShape(20.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 4.dp)
-    ) {
-        Text(
-            text = label,
-            fontSize = 11.sp,
-            color = if (isSelected) Accent else TextHint
-        )
-    }
-}
-
 // ── Month header ──────────────────────────────────────────────────────────────
 
 @Composable
 private fun MonthHeader(month: YearMonth, onPrev: () -> Unit, onNext: () -> Unit) {
+    val locale = Locale.getDefault()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -318,7 +292,7 @@ private fun MonthHeader(month: YearMonth, onPrev: () -> Unit, onNext: () -> Unit
             Icon(Icons.Default.ChevronLeft, "Mes anterior", tint = TextSecondary)
         }
         Text(
-            text = "${month.month.getDisplayName(TextStyle.FULL, Locale.getDefault()).replaceFirstChar { it.uppercase() }} ${month.year}",
+            text = "${month.month.getDisplayName(TextStyle.FULL, locale).replaceFirstChar { it.uppercase() }} ${month.year}",
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             color = TextPrimary
@@ -338,7 +312,14 @@ private fun CalendarGrid(
     selectedDay: LocalDate?,
     onDayClick: (LocalDate) -> Unit
 ) {
-    val firstDayOffset = month.atDay(1).dayOfWeek.value % 7
+    val locale = Locale.getDefault()
+    val daysOfWeek = if (locale.language == "es")
+        listOf("L", "M", "X", "J", "V", "S", "D")
+    else
+        listOf("M", "T", "W", "T", "F", "S", "S")
+
+    // Monday-first offset: MONDAY=1→0, TUESDAY=2→1, ..., SUNDAY=7→6
+    val firstDayOffset = (month.atDay(1).dayOfWeek.value - 1) % 7
     val daysInMonth = month.lengthOfMonth()
     val releasesByDay = remember(releases) { releases.groupBy { it.date.dayOfMonth } }
 
@@ -348,7 +329,7 @@ private fun CalendarGrid(
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
-            listOf("D", "L", "M", "X", "J", "V", "S").forEach { label ->
+            daysOfWeek.forEach { label ->
                 Text(
                     text = label,
                     modifier = Modifier.weight(1f),

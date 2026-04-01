@@ -11,6 +11,7 @@ import com.gamelaunch.domain.model.Game
 import com.gamelaunch.domain.repository.GameRepository
 import com.gamelaunch.domain.usecase.WishlistUseCase
 import com.gamelaunch.notification.NotificationScheduler
+import com.gamelaunch.presentation.settings.SettingsViewModel.Companion.LANGUAGE_KEY
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.sentry.Sentry
 import kotlinx.coroutines.flow.*
@@ -24,7 +25,8 @@ data class DetailUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val isTranslating: Boolean = false,
-    val showOriginalSummary: Boolean = false
+    val showOriginalSummary: Boolean = false,
+    val language: String = "es"
 )
 
 @HiltViewModel
@@ -43,14 +45,22 @@ class DetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
+                val prefs = dataStore.data.first()
+                val lang = prefs[LANGUAGE_KEY] ?: "es"
                 val game = repository.getGameDetail(gameId)
                 val wishlisted = repository.isInWishlist(gameId)
-                val savedDays = dataStore.data.first()[intPreferencesKey("notify_days_$gameId")]
+                val savedDays = prefs[intPreferencesKey("notify_days_$gameId")]
                 _uiState.update {
-                    it.copy(game = game, isWishlisted = wishlisted, isLoading = false, notifyDaysAhead = savedDays)
+                    it.copy(
+                        game = game,
+                        isWishlisted = wishlisted,
+                        isLoading = false,
+                        notifyDaysAhead = savedDays,
+                        language = lang
+                    )
                 }
-                // Auto-translate on first load if no cached translation exists
-                if (game != null && game.summaryEs == null && !game.summary.isNullOrBlank()) {
+                // Only auto-translate when language is Spanish
+                if (lang == "es" && game != null && game.summaryEs == null && !game.summary.isNullOrBlank()) {
                     translateSummary(game)
                 }
             } catch (e: Exception) {

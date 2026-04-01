@@ -1,5 +1,6 @@
 package com.gamelaunch.presentation.profile
 
+import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -7,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.*
@@ -14,10 +16,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.gamelaunch.R
 import com.gamelaunch.domain.model.Region
 import com.gamelaunch.presentation.settings.SettingsViewModel
 import com.gamelaunch.ui.theme.*
@@ -27,6 +32,7 @@ fun ProfileScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    val activity = LocalContext.current as Activity
 
     Column(
         modifier = Modifier
@@ -57,7 +63,7 @@ fun ProfileScreen(
         // ── Sección: Notificaciones ────────────────────────────────────────────
         SettingsSection(
             icon = Icons.Default.Notifications,
-            title = "Notificaciones",
+            title = stringResource(R.string.settings_notifications),
             subtitle = "Avísame antes de cada lanzamiento"
         ) {
             Row(
@@ -99,13 +105,56 @@ fun ProfileScreen(
         // ── Sección: Región ────────────────────────────────────────────────────
         SettingsSection(
             icon = Icons.Default.Place,
-            title = "Región",
+            title = stringResource(R.string.settings_region),
             subtitle = "Muestra lanzamientos de tu región"
         ) {
             ProfileRegionSelector(
                 selected = state.preferredRegion,
                 onSelect = viewModel::setPreferredRegion
             )
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        // ── Sección: Idioma ────────────────────────────────────────────────────
+        SettingsSection(
+            icon = Icons.Default.Language,
+            title = stringResource(R.string.language),
+            subtitle = "Cambia el idioma de la app"
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(top = 4.dp)
+            ) {
+                listOf(
+                    "es" to stringResource(R.string.language_es),
+                    "en" to stringResource(R.string.language_en)
+                ).forEach { (code, name) ->
+                    val isSelected = state.language == code
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            viewModel.setLanguage(code)
+                            activity.recreate()
+                        },
+                        label = { Text(name, fontSize = 13.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = AccentDim,
+                            selectedLabelColor = Accent,
+                            containerColor = SurfaceVariant,
+                            labelColor = TextSecondary
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = isSelected,
+                            selectedBorderColor = Accent,
+                            borderColor = BorderSubtle,
+                            selectedBorderWidth = 1.dp,
+                            borderWidth = 0.5.dp
+                        )
+                    )
+                }
+            }
         }
 
         Spacer(Modifier.height(32.dp))
@@ -188,12 +237,7 @@ private fun ProfileRegionSelector(
                     FilterChip(
                         selected = isSelected,
                         onClick = { onSelect(region) },
-                        label = {
-                            Text(
-                                text = region.displayName,
-                                fontSize = 12.sp
-                            )
-                        },
+                        label = { Text(text = region.displayName, fontSize = 12.sp) },
                         modifier = Modifier.weight(1f),
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = AccentDim,

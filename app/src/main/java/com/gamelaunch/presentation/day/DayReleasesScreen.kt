@@ -26,6 +26,8 @@ import com.gamelaunch.domain.model.Platform
 import com.gamelaunch.ui.components.GameCard
 import com.gamelaunch.ui.components.PlatformChip
 import com.gamelaunch.ui.theme.*
+import androidx.compose.ui.res.stringResource
+import com.gamelaunch.R
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
@@ -72,7 +74,7 @@ fun DayReleasesScreen(
                 ) {
                     Text("📭", fontSize = 40.sp)
                     Text(
-                        text = "Sin lanzamientos este día",
+                        text = stringResource(R.string.no_releases),
                         fontSize = 14.sp,
                         color = TextHint
                     )
@@ -116,7 +118,7 @@ private fun DayReleasesTopBar(
 ) {
     val dayName = date.dayOfMonth.toString()
     val monthName = date.month
-        .getDisplayName(TextStyle.FULL, Locale("es"))
+        .getDisplayName(TextStyle.FULL, Locale.getDefault())
         .replaceFirstChar { it.uppercase() }
 
     Column(
@@ -156,7 +158,7 @@ private fun DayReleasesTopBar(
                     color = TextPrimary
                 )
                 Text(
-                    text = "$releaseCount lanzamiento${if (releaseCount != 1) "s" else ""}",
+                    text = "$releaseCount ${stringResource(R.string.releases_today)}",
                     fontSize = 12.sp,
                     color = TextHint
                 )

@@ -85,11 +85,21 @@ class CalendarViewModel @Inject constructor(
                     val weekEnd = weekStart.plusDays(6)
                     val week = monthReleases
                         .filter { it.date >= weekStart && it.date <= weekEnd }
+                        .groupBy { it.game.id }
+                        .map { (_, releases) ->
+                            val merged = releases.map { it.platform }.distinct()
+                            releases.first().copy(game = releases.first().game.copy(platforms = merged))
+                        }
                         .sortedBy { it.date }
                     val featured = monthReleases
                         .filter { it.game.rating != null }
+                        .groupBy { it.game.id }
+                        .map { (_, releases) ->
+                            val merged = releases.map { it.platform }.distinct()
+                            val best = releases.maxBy { it.game.rating ?: 0f }
+                            best.copy(game = best.game.copy(platforms = merged))
+                        }
                         .sortedByDescending { it.game.rating }
-                        .distinctBy { it.game.id }
                         .take(10)
                     _uiState.update { it.copy(weekReleases = week, featuredReleases = featured) }
                 }
