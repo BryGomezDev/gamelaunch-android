@@ -67,6 +67,20 @@ fun HeroCard(
                 )
         )
 
+        // ── Platform chips — top-left ─────────────────────────────────────
+        val platforms = release.game.platforms.ifEmpty { listOf(release.platform) }
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            platforms.take(2).forEach { platform ->
+                PlatformChip(platform = platform, showLabel = false)
+            }
+        }
+
         // ── Wishlist button — top-right ───────────────────────────────────
         IconButton(
             onClick = onWishlistClick,

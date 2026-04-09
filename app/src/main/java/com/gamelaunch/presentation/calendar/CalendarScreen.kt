@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -81,7 +82,6 @@ fun CalendarScreen(
                         Button(
                             onClick = {
                                 Sentry.captureMessage("Test manual desde GameLaunch")
-                                throw RuntimeException("Test crash de Sentry — puedes ignorar esto")
                             },
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                         ) { Text("Test Sentry") }
@@ -249,29 +249,49 @@ private fun PlatformFilterRow(selected: Platform?, onSelect: (Platform?) -> Unit
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        item { PlatformFilterChip("Todos", selected == null) { onSelect(null) } }
+        item { PlatformFilterChip("Todos", isSelected = selected == null, iconRes = null) { onSelect(null) } }
         items(Platform.entries) { platform ->
-            PlatformFilterChip(platform.displayName, selected == platform) { onSelect(platform) }
+            PlatformFilterChip(
+                label = platform.displayName,
+                isSelected = selected == platform,
+                iconRes = platform.iconRes
+            ) { onSelect(platform) }
         }
     }
 }
 
 @Composable
-private fun PlatformFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit) {
-    Box(
+private fun PlatformFilterChip(
+    label: String,
+    isSelected: Boolean,
+    iconRes: Int?,
+    onClick: () -> Unit
+) {
+    val textColor = if (isSelected) TextPrimary else TextSecondary
+    Row(
         modifier = Modifier
             .background(
                 if (isSelected) Accent else SurfaceVariant,
                 RoundedCornerShape(20.dp)
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 6.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
     ) {
+        if (iconRes != null) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                tint = textColor,
+                modifier = Modifier.size(18.dp)
+            )
+        }
         Text(
             text = label,
             fontSize = 12.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-            color = if (isSelected) TextPrimary else TextSecondary
+            color = textColor
         )
     }
 }
@@ -524,10 +544,8 @@ private fun DebugInfoBanner(info: String, releaseCount: Int) {
 // ── Platform dot color helper ─────────────────────────────────────────────────
 
 fun Platform.toCalendarDotColor(): Color = when (this) {
-    Platform.STEAM                         -> PlatformSteam
-    Platform.PLAYSTATION_5,
-    Platform.PLAYSTATION_4                 -> PlatformPS
-    Platform.XBOX_SERIES,
-    Platform.XBOX_ONE                      -> PlatformXbox
-    Platform.NINTENDO_SWITCH               -> PlatformSwitch
+    Platform.STEAM           -> PlatformSteam
+    Platform.PLAYSTATION_5   -> PlatformPS
+    Platform.XBOX_SERIES     -> PlatformXbox
+    Platform.NINTENDO_SWITCH -> PlatformSwitch
 }

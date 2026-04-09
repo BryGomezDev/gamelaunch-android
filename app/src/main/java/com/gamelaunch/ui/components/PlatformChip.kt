@@ -2,7 +2,9 @@ package com.gamelaunch.ui.components
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,11 +40,9 @@ private data class PlatformStyle(
 private fun platformStyle(platform: Platform): PlatformStyle = when (platform) {
     Platform.STEAM ->
         PlatformStyle(R.drawable.ic_platform_steam, PlatformSteam, PlatformSteamBg, platform.displayName)
-    Platform.PLAYSTATION_5,
-    Platform.PLAYSTATION_4 ->
+    Platform.PLAYSTATION_5 ->
         PlatformStyle(R.drawable.ic_platform_ps, PlatformPS, PlatformPSBg, platform.displayName)
-    Platform.XBOX_SERIES,
-    Platform.XBOX_ONE ->
+    Platform.XBOX_SERIES ->
         PlatformStyle(R.drawable.ic_platform_xbox, PlatformXbox, PlatformXboxBg, platform.displayName)
     Platform.NINTENDO_SWITCH ->
         PlatformStyle(R.drawable.ic_platform_switch, PlatformSwitch, PlatformSwitchBg, platform.displayName)
@@ -57,11 +57,19 @@ fun PlatformChip(
     val style = platformStyle(platform)
 
     if (showLabel) {
-        Box(
+        Row(
             modifier = modifier
                 .background(style.bgColor, RoundedCornerShape(20.dp))
-                .padding(horizontal = 10.dp, vertical = 4.dp)
+                .padding(horizontal = 10.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
+            Icon(
+                painter = painterResource(style.iconRes),
+                contentDescription = null,
+                tint = style.fgColor,
+                modifier = Modifier.size(18.dp)
+            )
             Text(
                 text = style.label,
                 color = style.fgColor,
@@ -70,17 +78,18 @@ fun PlatformChip(
             )
         }
     } else {
+        // Icon-only chip for card overlays — always white on semi-transparent bg
         Box(
             modifier = modifier
-                .size(22.dp)
-                .background(style.bgColor, RoundedCornerShape(6.dp)),
+                .size(26.dp)
+                .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(6.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 painter = painterResource(style.iconRes),
                 contentDescription = style.label,
-                tint = style.fgColor,
-                modifier = Modifier.size(14.dp)
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
             )
         }
     }
