@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -51,6 +52,7 @@ import java.util.Locale
 fun DetailScreen(
     gameId: Int,
     onBack: () -> Unit,
+    onNavigateHome: () -> Unit = {},
     onGameClick: (Int) -> Unit = {},
     viewModel: DetailViewModel = hiltViewModel()
 ) {
@@ -96,6 +98,7 @@ fun DetailScreen(
                 OverlayNavButtons(
                     isWishlisted = state.isWishlisted,
                     onBack = onBack,
+                    onNavigateHome = onNavigateHome,
                     onToggleWishlist = viewModel::toggleWishlist
                 )
             }
@@ -109,6 +112,7 @@ fun DetailScreen(
 private fun OverlayNavButtons(
     isWishlisted: Boolean,
     onBack: () -> Unit,
+    onNavigateHome: () -> Unit,
     onToggleWishlist: () -> Unit
 ) {
     Row(
@@ -119,6 +123,7 @@ private fun OverlayNavButtons(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Back button — left
         Box(
             modifier = Modifier
                 .size(38.dp)
@@ -133,19 +138,36 @@ private fun OverlayNavButtons(
                 modifier = Modifier.size(18.dp)
             )
         }
-        Box(
-            modifier = Modifier
-                .size(38.dp)
-                .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                .clickable(onClick = onToggleWishlist),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = if (isWishlisted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = if (isWishlisted) "Quitar de lista" else "Añadir a lista",
-                tint = if (isWishlisted) Accent else Color.White,
-                modifier = Modifier.size(18.dp)
-            )
+        // Home + Wishlist — right
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    .clickable(onClick = onNavigateHome),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Home,
+                    contentDescription = "Inicio",
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    .clickable(onClick = onToggleWishlist),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (isWishlisted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = if (isWishlisted) "Quitar de lista" else "Añadir a lista",
+                    tint = if (isWishlisted) Accent else Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }

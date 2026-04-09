@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -36,6 +37,7 @@ import java.util.Locale
 fun DayReleasesScreen(
     onGameClick: (Int) -> Unit,
     onBack: () -> Unit,
+    onNavigateHome: () -> Unit,
     viewModel: DayReleasesViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -49,7 +51,8 @@ fun DayReleasesScreen(
                 availablePlatforms = state.availablePlatforms,
                 selectedPlatform = state.platformFilter,
                 onPlatformSelect = viewModel::onPlatformFilter,
-                onBack = onBack
+                onBack = onBack,
+                onNavigateHome = onNavigateHome
             )
         }
     ) { padding ->
@@ -114,7 +117,8 @@ private fun DayReleasesTopBar(
     availablePlatforms: List<Platform>,
     selectedPlatform: Platform?,
     onPlatformSelect: (Platform?) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateHome: () -> Unit
 ) {
     val dayName = date.dayOfMonth.toString()
     val monthName = date.month
@@ -184,6 +188,21 @@ private fun DayReleasesTopBar(
                         )
                     }
                 }
+            }
+
+            // Home button
+            IconButton(
+                onClick = onNavigateHome,
+                modifier = Modifier
+                    .size(38.dp)
+                    .background(SurfaceVariant, CircleShape)
+            ) {
+                Icon(
+                    Icons.Default.Home,
+                    contentDescription = "Inicio",
+                    tint = TextPrimary,
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }

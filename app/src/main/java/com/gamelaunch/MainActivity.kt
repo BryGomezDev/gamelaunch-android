@@ -24,14 +24,12 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.gamelaunch.di.appDataStore
 import com.gamelaunch.presentation.navigation.AppNavGraph
 import com.gamelaunch.presentation.navigation.Screen
-import com.gamelaunch.presentation.settings.SettingsViewModel.Companion.LANGUAGE_KEY
+import com.gamelaunch.presentation.settings.SettingsViewModel.Companion.LANG_CACHE_KEY
+import com.gamelaunch.presentation.settings.SettingsViewModel.Companion.LANG_CACHE_PREFS
 import com.gamelaunch.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import java.util.Locale
 
 @AndroidEntryPoint
@@ -48,9 +46,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun attachBaseContext(base: Context) {
-        val lang = runBlocking {
-            base.appDataStore.data.first()[LANGUAGE_KEY] ?: "es"
-        }
+        val lang = base.getSharedPreferences(LANG_CACHE_PREFS, Context.MODE_PRIVATE)
+            .getString(LANG_CACHE_KEY, "es") ?: "es"
         val locale = Locale(lang)
         Locale.setDefault(locale)
         val config = Configuration(base.resources.configuration)
@@ -78,7 +75,10 @@ private fun MainScaffold() {
         NavItem(Screen.Profile.route,  stringResource(R.string.nav_profile),  Icons.Default.Person)
     )
 
-    val showBottomBar = bottomItems.any { it.route == currentRoute }
+    val showBottomBar = currentRoute != null && (
+        bottomItems.any { it.route == currentRoute } ||
+        currentRoute.startsWith("day_releases/")
+    )
 
     Scaffold(
         containerColor = Background,

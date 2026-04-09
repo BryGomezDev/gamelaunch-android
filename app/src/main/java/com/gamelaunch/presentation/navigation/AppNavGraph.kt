@@ -47,23 +47,23 @@ fun AppNavGraph(navController: NavHostController) {
             val from = initialState.destination.route
             val to   = targetState.destination.route
             if (from in tabRoutes && to in tabRoutes)
-                fadeIn(tween(180))
+                fadeIn(tween(150))
             else
-                slideInHorizontally(tween(300)) { it } + fadeIn(tween(250))
+                slideInHorizontally(tween(220)) { it } + fadeIn(tween(180))
         },
         exitTransition = {
             val from = initialState.destination.route
             val to   = targetState.destination.route
             if (from in tabRoutes && to in tabRoutes)
-                fadeOut(tween(180))
+                fadeOut(tween(150))
             else
-                slideOutHorizontally(tween(300)) { -it / 3 } + fadeOut(tween(250))
+                slideOutHorizontally(tween(220)) { -it / 3 } + fadeOut(tween(180))
         },
         popEnterTransition = {
-            slideInHorizontally(tween(300)) { -it } + fadeIn(tween(250))
+            slideInHorizontally(tween(220)) { -it } + fadeIn(tween(180))
         },
         popExitTransition = {
-            slideOutHorizontally(tween(300)) { it } + fadeOut(tween(250))
+            slideOutHorizontally(tween(220)) { it } + fadeOut(tween(180))
         }
     ) {
         composable(Screen.Calendar.route) {
@@ -93,6 +93,9 @@ fun AppNavGraph(navController: NavHostController) {
             DetailScreen(
                 gameId = gameId,
                 onBack = { navController.popBackStack() },
+                onNavigateHome = {
+                    navController.popBackStack(Screen.Calendar.route, inclusive = false)
+                },
                 onGameClick = { navController.navigate(Screen.Detail.createRoute(it)) }
             )
         }
@@ -101,8 +104,9 @@ fun AppNavGraph(navController: NavHostController) {
             arguments = listOf(navArgument("date") { type = NavType.StringType })
         ) {
             DayReleasesScreen(
-                onGameClick = { navController.navigate(Screen.Detail.createRoute(it)) },
-                onBack      = { navController.popBackStack() }
+                onGameClick     = { navController.navigate(Screen.Detail.createRoute(it)) },
+                onBack          = { navController.popBackStack() },
+                onNavigateHome  = { navController.popBackStack(Screen.Calendar.route, inclusive = false) }
             )
         }
     }
