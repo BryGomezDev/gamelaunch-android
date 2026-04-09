@@ -38,6 +38,14 @@ class IgdbTokenManager @Inject constructor(
         response.accessToken
     }
 
+    fun clearToken() {
+        securePrefs.edit()
+            .remove(KEY_TOKEN)
+            .remove(KEY_EXPIRES_AT)
+            .apply()
+        if (BuildConfig.DEBUG) Log.d(TAG, "Token cache cleared")
+    }
+
     companion object {
         private const val TAG = "IgdbTokenManager"
         private const val KEY_TOKEN = "igdb_access_token"
