@@ -1,5 +1,10 @@
 package com.gamelaunch.presentation.calendar
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,6 +27,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -35,7 +41,9 @@ import com.gamelaunch.R
 import com.gamelaunch.domain.model.Platform
 import com.gamelaunch.domain.model.Release
 import com.gamelaunch.ui.components.HeroCard
+import com.gamelaunch.ui.components.HeroCardSkeleton
 import com.gamelaunch.ui.components.WeekCard
+import com.gamelaunch.ui.components.WeekCardSkeleton
 import com.gamelaunch.ui.theme.*
 import io.sentry.Sentry
 import java.time.LocalDate
@@ -91,7 +99,7 @@ fun CalendarScreen(
                 // ── Platform filter ───────────────────────────────────────
                 item {
                     PlatformFilterRow(
-                        selected = state.platformFilter,
+                        selected = state.platformFilters,
                         onSelect = viewModel::onPlatformFilter
                     )
                 }
@@ -129,28 +137,36 @@ fun CalendarScreen(
                 }
 
                 // ── Esta semana ───────────────────────────────────────────
-                if (state.weekReleases.isNotEmpty()) {
+                if (state.isRefreshing || state.weekReleases.isNotEmpty()) {
                     item { SectionDivider() }
                     item { SectionHeader(stringResource(R.string.this_week)) }
                     item {
-                        WeekRow(
-                            releases = state.weekReleases,
-                            onGameClick = onGameClick
-                        )
+                        if (state.isRefreshing && state.weekReleases.isEmpty()) {
+                            WeekSkeletonRow()
+                        } else {
+                            WeekRow(
+                                releases = state.weekReleases,
+                                onGameClick = onGameClick
+                            )
+                        }
                     }
                 }
 
                 // ── Próximos destacados ───────────────────────────────────
-                if (state.featuredReleases.isNotEmpty()) {
+                if (state.isRefreshing || state.featuredReleases.isNotEmpty()) {
                     item { SectionDivider() }
                     item { SectionHeader(stringResource(R.string.featured)) }
                     item {
-                        FeaturedRow(
-                            releases = state.featuredReleases,
-                            wishlistedIds = state.wishlistedIds,
-                            onWishlistToggle = viewModel::toggleWishlist,
-                            onGameClick = onGameClick
-                        )
+                        if (state.isRefreshing && state.featuredReleases.isEmpty()) {
+                            FeaturedSkeletonRow()
+                        } else {
+                            FeaturedRow(
+                                releases = state.featuredReleases,
+                                wishlistedIds = state.wishlistedIds,
+                                onWishlistToggle = viewModel::toggleWishlist,
+                                onGameClick = onGameClick
+                            )
+                        }
                     }
                 }
 
@@ -244,16 +260,16 @@ private fun CalendarTopBar(
 // ── Platform filter ───────────────────────────────────────────────────────────
 
 @Composable
-private fun PlatformFilterRow(selected: Platform?, onSelect: (Platform?) -> Unit) {
+private fun PlatformFilterRow(selected: Set<Platform>, onSelect: (Platform?) -> Unit) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        item { PlatformFilterChip("Todos", isSelected = selected == null, iconRes = null) { onSelect(null) } }
+        item { PlatformFilterChip("Todos", isSelected = selected.isEmpty(), iconRes = null) { onSelect(null) } }
         items(Platform.entries) { platform ->
             PlatformFilterChip(
                 label = platform.displayName,
-                isSelected = selected == platform,
+                isSelected = platform in selected,
                 iconRes = platform.iconRes
             ) { onSelect(platform) }
         }
@@ -399,27 +415,54 @@ private fun DayCell(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bg = when {
-        isToday    -> Accent
-        isSelected -> Surface
-        else       -> Color.Transparent
-    }
-    val borderColor = when {
-        isSelected && !isToday -> Accent
-        else                   -> Color.Transparent
-    }
+    // ── Animaciones ──────────────────────────────────────────────────────────
+    val bgColor by animateColorAsState(
+        targetValue = when {
+            isSelected -> Accent
+            else       -> Color.Transparent
+        },
+        animationSpec = tween(durationMillis = 200),
+        label = "dayCellBg"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = when {
+            isToday && !isSelected -> Accent.copy(alpha = 0.75f)
+            else                   -> Color.Transparent
+        },
+        animationSpec = tween(durationMillis = 200),
+        label = "dayCellBorder"
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 1.08f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "dayCellScale"
+    )
     val textColor = when {
-        isToday -> TextPrimary
-        else    -> TextSecondary
+        isSelected          -> TextPrimary
+        isToday             -> Accent
+        releases.isNotEmpty() -> TextPrimary
+        else                -> TextSecondary
     }
+    val fontWeight = when {
+        isSelected || isToday -> FontWeight.Bold
+        releases.isNotEmpty() -> FontWeight.SemiBold
+        else                  -> FontWeight.Normal
+    }
+
+    val distinctPlatforms = remember(releases) { releases.map { it.platform }.distinct() }
 
     Column(
         modifier = modifier
             .aspectRatio(1f)
             .padding(2.dp)
-            .border(0.5.dp, borderColor, CircleShape)
+            .scale(scale)
+            .border(
+                width = if (isToday && !isSelected) 1.5.dp else 0.dp,
+                color = borderColor,
+                shape = CircleShape
+            )
             .clip(CircleShape)
-            .background(bg)
+            .background(bgColor)
             .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -427,24 +470,53 @@ private fun DayCell(
         Text(
             text = day.toString(),
             fontSize = 12.sp,
-            fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
+            fontWeight = fontWeight,
             color = textColor,
             textAlign = TextAlign.Center
         )
-        if (releases.isNotEmpty()) {
+
+        // ── Indicadores de plataforma ─────────────────────────────────────
+        if (distinctPlatforms.isNotEmpty()) {
             Spacer(Modifier.height(2.dp))
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.padding(bottom = 2.dp)
-            ) {
-                releases.map { it.platform }.distinct().take(3).forEach { platform ->
-                    Box(
-                        modifier = Modifier
-                            .size(4.dp)
-                            .clip(CircleShape)
-                            .background(platform.toCalendarDotColor())
-                    )
-                    Spacer(Modifier.width(2.dp))
+            if (distinctPlatforms.size <= 3) {
+                // Puntos de color por plataforma
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier.padding(bottom = 2.dp)
+                ) {
+                    distinctPlatforms.forEach { platform ->
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isSelected)
+                                        platform.toCalendarDotColor().copy(alpha = 0.9f)
+                                    else
+                                        platform.toCalendarDotColor()
+                                )
+                        )
+                    }
+                }
+            } else {
+                // Más de 3 plataformas: mostrar solo las 3 primeras como puntos
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier.padding(bottom = 2.dp)
+                ) {
+                    distinctPlatforms.take(3).forEach { platform ->
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isSelected)
+                                        platform.toCalendarDotColor().copy(alpha = 0.9f)
+                                    else
+                                        platform.toCalendarDotColor()
+                                )
+                        )
+                    }
                 }
             }
         }
@@ -538,6 +610,32 @@ private fun DebugInfoBanner(info: String, releaseCount: Int) {
             fontSize = 11.sp,
             color = TextHint
         )
+    }
+}
+
+// ── Skeleton rows ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun WeekSkeletonRow() {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        items(5) {
+            com.gamelaunch.ui.components.WeekCardSkeleton()
+        }
+    }
+}
+
+@Composable
+private fun FeaturedSkeletonRow() {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        items(4) {
+            com.gamelaunch.ui.components.HeroCardSkeleton()
+        }
     }
 }
 

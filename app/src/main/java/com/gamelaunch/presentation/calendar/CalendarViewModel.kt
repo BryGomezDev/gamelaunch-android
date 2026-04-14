@@ -32,7 +32,7 @@ data class CalendarUiState(
     val weekReleases: List<Release> = emptyList(),
     val featuredReleases: List<Release> = emptyList(),
     val wishlistedIds: Set<Int> = emptySet(),
-    val platformFilter: Platform? = null,
+    val platformFilters: Set<Platform> = emptySet(),  // vacío = Todos
     val regionFilter: Region? = null,
     val isRefreshing: Boolean = false,
     val error: String? = null,
@@ -54,18 +54,35 @@ class CalendarViewModel @Inject constructor(
     private val syncedMonths = mutableSetOf<YearMonth>()
 
     init {
-        viewModelScope.launch {
-            val prefs = dataStore.data.first()
-            val preferredRegion = Region.fromId(
-                prefs[SettingsViewModel.REGION_KEY] ?: Region.WORLDWIDE.igdbId
-            )
-            val initialRegion = if (preferredRegion == Region.WORLDWIDE) null else preferredRegion
-            _uiState.update { it.copy(regionFilter = initialRegion) }
-        }
-
         val month = _uiState.value.currentMonth
+
+        // Carga inmediata para evitar pantalla vacía mientras DataStore lee del disco
         loadMonth(month)
         fetchMonthIfEmpty(month)
+
+        // Reactivo: observa cambios en favoritas de DataStore.
+        // - Primera emisión: aplica el filtro guardado al arrancar
+        // - Emisiones posteriores: actualiza el filtro cuando el usuario
+        //   cambia ajustes y vuelve a esta pantalla, sin reiniciar la app.
+        // distinctUntilChanged() evita recargar si las favoritas no cambiaron,
+        // lo que preserva los cambios manuales del usuario en los chips.
+        viewModelScope.launch {
+            dataStore.data
+                .map { prefs ->
+                    prefs[SettingsViewModel.FAVORITE_PLATFORMS_KEY]
+                        ?.mapNotNull { name -> runCatching { Platform.valueOf(name) }.getOrNull() }
+                        ?.toSet()
+                        ?: emptySet()
+                }
+                .distinctUntilChanged()
+                .collect { favorites ->
+                    val prevFilters = _uiState.value.platformFilters
+                    if (favorites != prevFilters) {
+                        _uiState.update { it.copy(platformFilters = favorites) }
+                        loadMonth(_uiState.value.currentMonth)
+                    }
+                }
+        }
 
         // Reactive wishlist ids
         viewModelScope.launch {
@@ -108,14 +125,18 @@ class CalendarViewModel @Inject constructor(
 
     private fun loadMonth(month: YearMonth) {
         loadJob?.cancel()
-        val state = _uiState.value
         loadJob = viewModelScope.launch {
-            getReleasesUseCase.forMonth(month.year, month.monthValue, state.platformFilter, state.regionFilter)
+            // Cargamos siempre sin filtro de plataforma en BD y aplicamos el multi-filtro en memoria.
+            // Así soportamos selección múltiple sin cambiar UseCase ni Room.
+            getReleasesUseCase.forMonth(month.year, month.monthValue, null, _uiState.value.regionFilter)
                 .catch { e ->
                     Log.e(TAG, "Flow error: ${e.message}", e)
                     _uiState.update { it.copy(error = e.message) }
                 }
-                .collect { releases ->
+                .collect { allReleases ->
+                    val filters = _uiState.value.platformFilters
+                    val releases = if (filters.isEmpty()) allReleases
+                                   else allReleases.filter { it.platform in filters }
                     _uiState.update { s ->
                         s.copy(
                             releases = releases,
@@ -172,7 +193,14 @@ class CalendarViewModel @Inject constructor(
     }
 
     fun onPlatformFilter(platform: Platform?) {
-        _uiState.update { it.copy(platformFilter = platform) }
+        _uiState.update { state ->
+            val newFilters = when {
+                platform == null            -> emptySet()          // "Todos" → limpiar todo
+                platform in state.platformFilters -> state.platformFilters - platform  // deseleccionar
+                else                        -> state.platformFilters + platform        // seleccionar
+            }
+            state.copy(platformFilters = newFilters)
+        }
         loadMonth(_uiState.value.currentMonth)
     }
 
