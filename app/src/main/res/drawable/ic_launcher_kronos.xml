@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Foreground del adaptive icon de Kronos.
+    Contiene ÚNICAMENTE la K blanca — sin fondo, sin esquinas.
+    El fondo (#5B2D8E) lo aporta el adaptive icon vía @color/ic_launcher_background.
+    Viewport 2048×2048 (coordenadas del SVG original).
+    La K ocupa x:433–1614, y:449–1598, centrada en el canvas (1024,1024).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="2048"
+    android:viewportHeight="2048">
+
+    <path
+        android:fillColor="#FCFDFD"
+        android:strokeColor="#FCFDFD"
+        android:strokeWidth="2.0"
+        android:strokeLineJoin="round"
+        android:pathData="M433,449L433,1264L456,1244L789,877L789,1194L433,1395L433,1598L790,1598L790,1195L1115,1008L1117,1012L921,1285L919,1296L1167,1598L1614,1598L1126,1004L1614,449L1171,449L792,871L790,449L433,449Z"/>
+
+</vector>
