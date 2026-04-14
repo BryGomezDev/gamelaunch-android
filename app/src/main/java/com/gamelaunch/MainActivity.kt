@@ -95,12 +95,17 @@ private fun MainScaffold() {
                             NavigationBarItem(
                                 selected = isSelected,
                                 onClick = {
-                                    navController.navigate(item.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
+                                    val fromDayReleases = currentRoute?.startsWith("day_releases/") == true
+                                    if (fromDayReleases && item.route == Screen.Calendar.route) {
+                                        navController.popBackStack(Screen.Calendar.route, inclusive = false)
+                                    } else {
+                                        navController.navigate(item.route) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
                                         }
-                                        launchSingleTop = true
-                                        restoreState = true
                                     }
                                 },
                                 icon = {

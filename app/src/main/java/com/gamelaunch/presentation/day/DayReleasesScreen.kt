@@ -1,5 +1,11 @@
 package com.gamelaunch.presentation.day
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,15 +17,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Transparent
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -37,7 +48,6 @@ import java.util.Locale
 fun DayReleasesScreen(
     onGameClick: (Int) -> Unit,
     onBack: () -> Unit,
-    onNavigateHome: () -> Unit,
     viewModel: DayReleasesViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -51,8 +61,7 @@ fun DayReleasesScreen(
                 availablePlatforms = state.availablePlatforms,
                 selectedPlatform = state.platformFilter,
                 onPlatformSelect = viewModel::onPlatformFilter,
-                onBack = onBack,
-                onNavigateHome = onNavigateHome
+                onBack = onBack
             )
         }
     ) { padding ->
@@ -71,17 +80,7 @@ fun DayReleasesScreen(
                     .background(Background),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("📭", fontSize = 40.sp)
-                    Text(
-                        text = stringResource(R.string.no_releases),
-                        fontSize = 14.sp,
-                        color = TextHint
-                    )
-                }
+                EmptyDayState()
             }
         } else {
             LazyVerticalGrid(
@@ -117,8 +116,7 @@ private fun DayReleasesTopBar(
     availablePlatforms: List<Platform>,
     selectedPlatform: Platform?,
     onPlatformSelect: (Platform?) -> Unit,
-    onBack: () -> Unit,
-    onNavigateHome: () -> Unit
+    onBack: () -> Unit
 ) {
     val dayName = date.dayOfMonth.toString()
     val monthName = date.month
@@ -190,20 +188,134 @@ private fun DayReleasesTopBar(
                 }
             }
 
-            // Home button
-            IconButton(
-                onClick = onNavigateHome,
+        }
+    }
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+
+@Composable
+private fun EmptyDayState() {
+    // Anillo animado decorativo (pulso sutil)
+    val infiniteTransition = rememberInfiniteTransition(label = "emptyPulse")
+    val sweepAngle by infiniteTransition.animateFloat(
+        initialValue = 60f,
+        targetValue = 300f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "emptyArc"
+    )
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.padding(horizontal = 32.dp)
+    ) {
+        // Icono vectorial compuesto: calendario vacío con arco animado
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(96.dp)
+        ) {
+            // Círculo de fondo
+            Box(
                 modifier = Modifier
-                    .size(38.dp)
-                    .background(SurfaceVariant, CircleShape)
-            ) {
-                Icon(
-                    Icons.Default.Home,
-                    contentDescription = "Inicio",
-                    tint = TextPrimary,
-                    modifier = Modifier.size(18.dp)
+                    .size(96.dp)
+                    .background(AccentDim, CircleShape)
+            )
+            // Arco animado decorativo
+            Box(
+                modifier = Modifier
+                    .size(96.dp)
+                    .drawBehind {
+                        drawArc(
+                            brush = Brush.sweepGradient(
+                                colors = listOf(
+                                    Accent.copy(alpha = 0f),
+                                    Accent.copy(alpha = 0.6f),
+                                    Accent.copy(alpha = 0f)
+                                )
+                            ),
+                            startAngle = -90f,
+                            sweepAngle = sweepAngle,
+                            useCenter = false,
+                            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+                        )
+                    }
+            )
+            // Icono de calendario vectorial (DrawScope API pura de Compose)
+            androidx.compose.foundation.Canvas(modifier = Modifier.size(44.dp)) {
+                val strokeW = 2.dp.toPx()
+                val cornerR = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
+                val accentColor = Accent
+
+                // Cuerpo del calendario (borde)
+                drawRoundRect(
+                    color = accentColor,
+                    topLeft = androidx.compose.ui.geometry.Offset(strokeW, 8.dp.toPx()),
+                    size = androidx.compose.ui.geometry.Size(
+                        size.width - strokeW * 2,
+                        size.height - 8.dp.toPx() - strokeW
+                    ),
+                    cornerRadius = cornerR,
+                    style = Stroke(width = strokeW, cap = StrokeCap.Round)
+                )
+
+                // Cabecera rellena (franja superior)
+                drawRoundRect(
+                    color = accentColor.copy(alpha = 0.35f),
+                    topLeft = androidx.compose.ui.geometry.Offset(strokeW, 8.dp.toPx()),
+                    size = androidx.compose.ui.geometry.Size(
+                        size.width - strokeW * 2,
+                        8.dp.toPx()
+                    ),
+                    cornerRadius = cornerR
+                )
+
+                // Asas superiores izquierda y derecha
+                drawLine(
+                    color = accentColor,
+                    start = androidx.compose.ui.geometry.Offset(12.dp.toPx(), 4.dp.toPx()),
+                    end   = androidx.compose.ui.geometry.Offset(12.dp.toPx(), 12.dp.toPx()),
+                    strokeWidth = strokeW,
+                    cap = StrokeCap.Round
+                )
+                drawLine(
+                    color = accentColor,
+                    start = androidx.compose.ui.geometry.Offset(32.dp.toPx(), 4.dp.toPx()),
+                    end   = androidx.compose.ui.geometry.Offset(32.dp.toPx(), 12.dp.toPx()),
+                    strokeWidth = strokeW,
+                    cap = StrokeCap.Round
+                )
+
+                // Guión central "sin datos"
+                drawLine(
+                    color = accentColor.copy(alpha = 0.7f),
+                    start = androidx.compose.ui.geometry.Offset(14.dp.toPx(), 29.dp.toPx()),
+                    end   = androidx.compose.ui.geometry.Offset(30.dp.toPx(), 29.dp.toPx()),
+                    strokeWidth = 2.5.dp.toPx(),
+                    cap = StrokeCap.Round
                 )
             }
         }
+
+        // Texto principal
+        Text(
+            text = "Sin lanzamientos este día",
+            fontSize = 17.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextPrimary,
+            textAlign = TextAlign.Center
+        )
+
+        // Subtexto
+        Text(
+            text = "Prueba con otra fecha del calendario",
+            fontSize = 13.sp,
+            color = TextSecondary,
+            textAlign = TextAlign.Center,
+            lineHeight = 18.sp
+        )
     }
 }
