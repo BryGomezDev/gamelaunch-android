@@ -10,20 +10,21 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.gamelaunch.R
-import com.gamelaunch.domain.model.Region
+import com.gamelaunch.domain.model.Platform
 import com.gamelaunch.presentation.settings.SettingsViewModel
 import com.gamelaunch.ui.theme.*
 
@@ -102,16 +103,52 @@ fun ProfileScreen(
 
         Spacer(Modifier.height(8.dp))
 
-        // ── Sección: Región ────────────────────────────────────────────────────
+        // ── Sección: Plataformas favoritas ────────────────────────────────────
         SettingsSection(
-            icon = Icons.Default.Place,
-            title = stringResource(R.string.settings_region),
-            subtitle = "Muestra lanzamientos de tu región"
+            icon = Icons.Default.Star,
+            title = "Plataformas favoritas",
+            subtitle = "Filtra el calendario por tus plataformas"
         ) {
-            ProfileRegionSelector(
-                selected = state.preferredRegion,
-                onSelect = viewModel::setPreferredRegion
-            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(top = 4.dp)
+            ) {
+                Platform.entries.chunked(2).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        row.forEach { platform ->
+                            val isSelected = platform in state.favoritePlatforms
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { viewModel.toggleFavoritePlatform(platform) },
+                                label = { Text(platform.displayName, fontSize = 13.sp) },
+                                leadingIcon = {
+                                    Icon(
+                                        painter = painterResource(platform.iconRes),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = AccentDim,
+                                    selectedLabelColor = Accent,
+                                    containerColor = SurfaceVariant,
+                                    labelColor = TextSecondary
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isSelected,
+                                    selectedBorderColor = Accent,
+                                    borderColor = BorderSubtle,
+                                    selectedBorderWidth = 1.dp,
+                                    borderWidth = 0.5.dp
+                                )
+                            )
+                        }
+                        if (row.size == 1) Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
         }
 
         Spacer(Modifier.height(8.dp))
@@ -210,52 +247,5 @@ private fun SettingsSection(
             }
         }
         content()
-    }
-}
-
-@Composable
-private fun ProfileRegionSelector(
-    selected: Region,
-    onSelect: (Region) -> Unit
-) {
-    val regions = listOf(
-        Region.WORLDWIDE,
-        Region.EUROPE,
-        Region.NORTH_AMERICA,
-        Region.JAPAN,
-        Region.ASIA,
-        Region.AUSTRALIA,
-        Region.BRAZIL,
-        Region.KOREA
-    )
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        regions.chunked(2).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { region ->
-                    val isSelected = selected == region
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { onSelect(region) },
-                        label = { Text(text = region.displayName, fontSize = 12.sp) },
-                        modifier = Modifier.weight(1f),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = AccentDim,
-                            selectedLabelColor = Accent,
-                            containerColor = SurfaceVariant,
-                            labelColor = TextSecondary
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = isSelected,
-                            selectedBorderColor = Accent,
-                            borderColor = BorderSubtle,
-                            selectedBorderWidth = 1.dp,
-                            borderWidth = 0.5.dp
-                        )
-                    )
-                }
-                if (row.size == 1) Spacer(Modifier.weight(1f))
-            }
-        }
     }
 }

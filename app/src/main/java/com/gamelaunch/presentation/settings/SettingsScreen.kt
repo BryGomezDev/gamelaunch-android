@@ -6,9 +6,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.gamelaunch.domain.model.Region
+import com.gamelaunch.domain.model.Platform
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,7 +28,7 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Notificaciones
+            // ── Notificaciones ────────────────────────────────────────────
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Notificarme con antelación", style = MaterialTheme.typography.titleMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -43,17 +44,17 @@ fun SettingsScreen(
 
             HorizontalDivider()
 
-            // Región
+            // ── Plataformas favoritas ─────────────────────────────────────
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Región de lanzamientos", style = MaterialTheme.typography.titleMedium)
+                Text("Plataformas favoritas", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "El calendario mostrará lanzamientos de la región seleccionada por defecto.",
+                    "Filtra el calendario por tus plataformas",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                RegionSelector(
-                    selected = state.preferredRegion,
-                    onSelect = viewModel::setPreferredRegion
+                FavoritePlatformsSelector(
+                    selected = state.favoritePlatforms,
+                    onToggle = viewModel::toggleFavoritePlatform
                 )
             }
         }
@@ -61,28 +62,25 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun RegionSelector(
-    selected: Region,
-    onSelect: (Region) -> Unit
+private fun FavoritePlatformsSelector(
+    selected: Set<Platform>,
+    onToggle: (Platform) -> Unit
 ) {
-    val regions = listOf(
-        Region.WORLDWIDE,
-        Region.EUROPE,
-        Region.NORTH_AMERICA,
-        Region.JAPAN,
-        Region.ASIA,
-        Region.AUSTRALIA,
-        Region.BRAZIL,
-        Region.KOREA
-    )
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        regions.chunked(2).forEach { row ->
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Platform.entries.chunked(2).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { region ->
+                row.forEach { platform ->
                     FilterChip(
-                        selected = selected == region,
-                        onClick = { onSelect(region) },
-                        label = { Text(region.displayName) },
+                        selected = platform in selected,
+                        onClick  = { onToggle(platform) },
+                        label    = { Text(platform.displayName) },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(platform.iconRes),
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
                         modifier = Modifier.weight(1f)
                     )
                 }
