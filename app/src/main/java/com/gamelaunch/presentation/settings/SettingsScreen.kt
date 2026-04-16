@@ -1,5 +1,6 @@
 package com.gamelaunch.presentation.settings
 
+import android.os.Build
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -10,6 +11,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.gamelaunch.domain.model.Platform
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,6 +33,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             // ── Notificaciones ────────────────────────────────────────────
+            NotificationPermissionHandler()
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Notificarme con antelación", style = MaterialTheme.typography.titleMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -57,6 +62,22 @@ fun SettingsScreen(
                     onToggle = viewModel::toggleFavoritePlatform
                 )
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+private fun NotificationPermissionHandler() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+
+    val notifPermission = rememberPermissionState(
+        android.Manifest.permission.POST_NOTIFICATIONS
+    )
+
+    LaunchedEffect(Unit) {
+        if (!notifPermission.status.isGranted) {
+            notifPermission.launchPermissionRequest()
         }
     }
 }
