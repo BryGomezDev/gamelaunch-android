@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.sentry)
 }
 
 // Load local.properties — project.findProperty() does NOT read this file automatically.
@@ -14,6 +15,10 @@ plugins {
 val localProps = Properties()
 val localPropsFile = rootProject.file("local.properties")
 if (localPropsFile.exists()) localPropsFile.inputStream().use { localProps.load(it) }
+
+val keystoreProps = Properties()
+val keystoreFile = rootProject.file("keystore.properties")
+if (keystoreFile.exists()) keystoreFile.inputStream().use { keystoreProps.load(it) }
 
 android {
     namespace = "com.gamelaunch"
@@ -34,8 +39,21 @@ android {
         buildConfigField("String", "DEEPL_API_KEY",      "\"${localProps.getProperty("DEEPL_API_KEY",      "")}\"")
     }
 
+    signingConfigs {
+        create("release") {
+            val sf = keystoreProps.getProperty("storeFile")
+            if (sf != null) {
+                storeFile = file(sf)
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -125,6 +143,9 @@ dependencies {
     // Security — EncryptedSharedPreferences for OAuth token storage
     implementation(libs.security.crypto)
 
+    // Accompanist
+    implementation(libs.accompanist.permissions)
+
     // Sentry
     implementation(libs.sentry.android)
 
@@ -141,4 +162,14 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.room.testing)
     androidTestImplementation(libs.coroutines.test)
+}
+
+sentry {
+    org.set("daw-student")
+    projectName.set("gamelaunch-android")
+    authToken.set(System.getenv("SENTRY_AUTH_TOKEN")
+        ?: localProps.getProperty("SENTRY_AUTH_TOKEN", ""))
+    uploadNativeSymbols.set(false)
+    includeNativeSources.set(false)
+    autoUploadProguardMapping.set(true)
 }

@@ -51,3 +51,10 @@
 # ── Kotlin ────────────────────────────────────────────────────────────────────
 -keepattributes *Annotation*
 -keepclassmembers class kotlin.Metadata { *; }
+
+# ── Eliminar logs de debug en release ────────────────────────────────────────
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+}
