@@ -155,8 +155,7 @@ private fun DayReleasesTopBar(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "$dayName de $monthName",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineSmall,
                     color = TextPrimary
                 )
                 Text(

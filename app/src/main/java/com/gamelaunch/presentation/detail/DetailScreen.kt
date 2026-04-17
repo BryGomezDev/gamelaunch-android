@@ -441,8 +441,7 @@ private fun HeroArea(
             ) {
                 Text(
                     text = game.name,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineSmall,
                     color = Color.White,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis

@@ -538,8 +538,7 @@ private fun SectionDivider() {
 private fun SectionHeader(title: String) {
     Text(
         text = title,
-        fontSize = 16.sp,
-        fontWeight = FontWeight.Bold,
+        style = MaterialTheme.typography.headlineSmall,
         color = TextPrimary,
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
     )

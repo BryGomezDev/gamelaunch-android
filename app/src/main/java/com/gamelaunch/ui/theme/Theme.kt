@@ -22,7 +22,7 @@ private val GameLaunchColorScheme = darkColorScheme(
 fun GameLaunchTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = GameLaunchColorScheme,
-        typography  = GameLaunchTypography,
+        typography  = KronosTypography,
         content     = content
     )
 }
