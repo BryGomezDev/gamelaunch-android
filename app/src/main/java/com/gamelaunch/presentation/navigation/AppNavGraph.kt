@@ -3,6 +3,7 @@ package com.gamelaunch.presentation.navigation
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -114,7 +115,24 @@ fun AppNavGraph(navController: NavHostController) {
             CalendarScreen(
                 onGameClick   = { navController.navigate(Screen.Detail.createRoute(it)) },
                 onDayClick    = { date -> navController.navigate(Screen.DayReleases.createRoute(date)) },
-                onSearchClick = { navController.navigate(Screen.Search.route) }
+                onSearchClick = { navController.navigate(Screen.Search.route) },
+                currentRoute  = "home",
+                onNavigate    = { route ->
+                    when (route) {
+                        "home"     -> { /* ya estamos aquí */ }
+                        "timeline" -> { /* pantalla futura */ }
+                        "milista"  -> navController.navigate(Screen.Wishlist.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                        "ajustes"  -> navController.navigate(Screen.Profile.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                }
             )
         }
         composable(Screen.Search.route) {

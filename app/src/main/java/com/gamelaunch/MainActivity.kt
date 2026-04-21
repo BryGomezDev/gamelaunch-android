@@ -75,10 +75,10 @@ private fun MainScaffold() {
         NavItem(Screen.Profile.route,  stringResource(R.string.nav_profile),  Icons.Default.Person)
     )
 
-    val showBottomBar = currentRoute != null && (
-        bottomItems.any { it.route == currentRoute } ||
-        currentRoute.startsWith("day_releases/")
-    )
+    // CalendarScreen gestiona su propia KronosBottomNav — la excluimos aquí
+    val showBottomBar = currentRoute != null &&
+        currentRoute != Screen.Calendar.route &&
+        (bottomItems.any { it.route == currentRoute } || currentRoute.startsWith("day_releases/"))
 
     Scaffold(
         containerColor = Background,
