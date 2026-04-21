@@ -4,89 +4,102 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.gamelaunch.R
 
-val SyneFontFamily = FontFamily(
-    Font(R.font.syne_bold, FontWeight.Bold),
-    Font(R.font.syne_bold, FontWeight.SemiBold)
+val ManropeFamily = FontFamily(
+    Font(R.font.manrope, FontWeight.Light,     style = FontStyle.Normal),
+    Font(R.font.manrope, FontWeight.Normal),
+    Font(R.font.manrope, FontWeight.Medium),
+    Font(R.font.manrope, FontWeight.SemiBold),
+    Font(R.font.manrope, FontWeight.Bold),
+    Font(R.font.manrope, FontWeight.ExtraBold),
+    Font(R.font.manrope, FontWeight.Black),
 )
 
 val KronosTypography = Typography(
     displayLarge = TextStyle(
-        fontWeight    = FontWeight.Bold,
+        fontFamily    = ManropeFamily,
+        fontWeight    = FontWeight.Black,
         fontSize      = 57.sp,
-        letterSpacing = (-0.3).sp
+        letterSpacing = (-0.25).sp
     ),
     displayMedium = TextStyle(
-        fontWeight    = FontWeight.Bold,
-        fontSize      = 45.sp,
-        letterSpacing = (-0.3).sp
+        fontFamily = ManropeFamily,
+        fontWeight = FontWeight.ExtraBold,
+        fontSize   = 45.sp
     ),
     displaySmall = TextStyle(
-        fontWeight    = FontWeight.Bold,
-        fontSize      = 36.sp,
-        letterSpacing = (-0.3).sp
+        fontFamily = ManropeFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize   = 36.sp
     ),
     headlineLarge = TextStyle(
-        fontFamily    = SyneFontFamily,
-        fontWeight    = FontWeight.Bold,
+        fontFamily    = ManropeFamily,
+        fontWeight    = FontWeight.ExtraBold,
         fontSize      = 32.sp,
-        letterSpacing = (-0.5).sp
+        letterSpacing = (-1).sp
     ),
     headlineMedium = TextStyle(
-        fontFamily = SyneFontFamily,
-        fontWeight = FontWeight.SemiBold,
-        fontSize   = 28.sp
+        fontFamily    = ManropeFamily,
+        fontWeight    = FontWeight.ExtraBold,
+        fontSize      = 28.sp,
+        letterSpacing = (-0.5).sp
     ),
     headlineSmall = TextStyle(
-        fontFamily = SyneFontFamily,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = ManropeFamily,
+        fontWeight = FontWeight.Bold,
         fontSize   = 24.sp
     ),
     titleLarge = TextStyle(
-        fontWeight    = FontWeight.Bold,
-        fontSize      = 22.sp,
-        letterSpacing = (-0.5).sp
+        fontFamily = ManropeFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize   = 22.sp
     ),
     titleMedium = TextStyle(
-        fontWeight    = FontWeight.SemiBold,
-        fontSize      = 16.sp,
-        letterSpacing = (-0.3).sp
+        fontFamily = ManropeFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize   = 16.sp
     ),
     titleSmall = TextStyle(
-        fontWeight    = FontWeight.Bold,
-        fontSize      = 14.sp,
-        letterSpacing = (-0.3).sp
+        fontFamily = ManropeFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize   = 14.sp
     ),
     bodyLarge = TextStyle(
-        fontWeight = FontWeight.Normal,
+        fontFamily = ManropeFamily,
+        fontWeight = FontWeight.Light,
         fontSize   = 16.sp,
-        lineHeight = (1.6).em
+        lineHeight = 24.sp
     ),
     bodyMedium = TextStyle(
+        fontFamily = ManropeFamily,
         fontWeight = FontWeight.Normal,
         fontSize   = 14.sp,
         lineHeight = 22.sp
     ),
     bodySmall = TextStyle(
+        fontFamily = ManropeFamily,
         fontWeight = FontWeight.Normal,
         fontSize   = 12.sp,
-        lineHeight = (1.6).em
+        lineHeight = 18.sp
     ),
     labelLarge = TextStyle(
-        fontWeight = FontWeight.Normal,
+        fontFamily = ManropeFamily,
+        fontWeight = FontWeight.Medium,
         fontSize   = 14.sp
     ),
     labelMedium = TextStyle(
-        fontWeight = FontWeight.Normal,
+        fontFamily = ManropeFamily,
+        fontWeight = FontWeight.Medium,
         fontSize   = 12.sp
     ),
     labelSmall = TextStyle(
-        fontWeight    = FontWeight.Medium,
-        fontSize      = 11.sp,
-        letterSpacing = 0.06.sp
+        fontFamily    = ManropeFamily,
+        fontWeight    = FontWeight.Bold,
+        fontSize      = 10.sp,
+        letterSpacing = 1.5.sp
     ),
 )

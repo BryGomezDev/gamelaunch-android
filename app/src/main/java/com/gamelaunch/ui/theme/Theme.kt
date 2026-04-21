@@ -4,24 +4,28 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 
-private val GameLaunchColorScheme = darkColorScheme(
-    background          = Background,
-    surface             = Surface,
-    surfaceVariant      = SurfaceVariant,
-    primary             = Accent,
-    onPrimary           = TextPrimary,
-    onBackground        = TextPrimary,
-    onSurface           = TextPrimary,
-    onSurfaceVariant    = TextSecondary,
-    outline             = BorderSubtle,
-    primaryContainer    = AccentDim,
-    onPrimaryContainer  = Accent,
+private val KronosColorScheme = darkColorScheme(
+    background            = Background,
+    surface               = Surface,
+    surfaceContainer      = SurfaceContainer,
+    surfaceContainerHigh  = SurfaceContainerHigh,
+    surfaceContainerHighest = SurfaceContainerHighest,
+    surfaceContainerLow   = SurfaceContainerLow,
+    surfaceContainerLowest = SurfaceContainerLowest,
+    primary               = Primary,
+    primaryContainer      = PrimaryFixed,
+    onPrimary             = OnPrimary,
+    onPrimaryContainer    = OnPrimary,
+    onSurface             = OnSurface,
+    onSurfaceVariant      = OnSurfaceVariant,
+    outlineVariant        = OutlineVariant,
+    onBackground          = OnSurface,
 )
 
 @Composable
 fun GameLaunchTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = GameLaunchColorScheme,
+        colorScheme = KronosColorScheme,
         typography  = KronosTypography,
         content     = content
     )
