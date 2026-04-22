@@ -4,19 +4,18 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.gamelaunch.R
 
 val ManropeFamily = FontFamily(
-    Font(R.font.manrope, FontWeight.Light,     style = FontStyle.Normal),
-    Font(R.font.manrope, FontWeight.Normal),
-    Font(R.font.manrope, FontWeight.Medium),
-    Font(R.font.manrope, FontWeight.SemiBold),
-    Font(R.font.manrope, FontWeight.Bold),
-    Font(R.font.manrope, FontWeight.ExtraBold),
-    Font(R.font.manrope, FontWeight.Black),
+    Font(R.font.manrope_variable, FontWeight.Light),
+    Font(R.font.manrope_variable, FontWeight.Normal),
+    Font(R.font.manrope_variable, FontWeight.Medium),
+    Font(R.font.manrope_variable, FontWeight.SemiBold),
+    Font(R.font.manrope_variable, FontWeight.Bold),
+    Font(R.font.manrope_variable, FontWeight.ExtraBold),
+    Font(R.font.manrope_variable, FontWeight.Black),
 )
 
 val KronosTypography = Typography(
