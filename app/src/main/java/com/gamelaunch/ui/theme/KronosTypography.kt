@@ -1,21 +1,24 @@
+@file:OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
+
 package com.gamelaunch.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.gamelaunch.R
 
 val ManropeFamily = FontFamily(
-    Font(R.font.manrope_variable, FontWeight.Light),
-    Font(R.font.manrope_variable, FontWeight.Normal),
-    Font(R.font.manrope_variable, FontWeight.Medium),
-    Font(R.font.manrope_variable, FontWeight.SemiBold),
-    Font(R.font.manrope_variable, FontWeight.Bold),
-    Font(R.font.manrope_variable, FontWeight.ExtraBold),
-    Font(R.font.manrope_variable, FontWeight.Black),
+    Font(R.font.manrope_variable, FontWeight.Light,    variationSettings = FontVariation.Settings(FontVariation.weight(300))),
+    Font(R.font.manrope_variable, FontWeight.Normal,   variationSettings = FontVariation.Settings(FontVariation.weight(400))),
+    Font(R.font.manrope_variable, FontWeight.Medium,   variationSettings = FontVariation.Settings(FontVariation.weight(500))),
+    Font(R.font.manrope_variable, FontWeight.SemiBold, variationSettings = FontVariation.Settings(FontVariation.weight(600))),
+    Font(R.font.manrope_variable, FontWeight.Bold,     variationSettings = FontVariation.Settings(FontVariation.weight(700))),
+    Font(R.font.manrope_variable, FontWeight.ExtraBold,variationSettings = FontVariation.Settings(FontVariation.weight(800))),
+    Font(R.font.manrope_variable, FontWeight.Black,    variationSettings = FontVariation.Settings(FontVariation.weight(900))),
 )
 
 val KronosTypography = Typography(
