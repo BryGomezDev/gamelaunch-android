@@ -67,22 +67,27 @@ fun KronosBottomNav(
         verticalAlignment = Alignment.CenterVertically
     ) {
         kronosNavItems.forEach { item ->
-            val isActive = currentRoute == item.route
+            val isDisabled = item.route == "timeline"
+            val isActive = !isDisabled && currentRoute == item.route
             Box(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(if (isActive) PrimaryFixed else Color.Transparent)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { onNavigate(item.route) },
+                    .then(
+                        if (!isDisabled) Modifier.clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { onNavigate(item.route) }
+                        else Modifier
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = if (isActive) item.iconFilled else item.iconOutlined,
                     contentDescription = item.contentDescription,
-                    tint = if (isActive) OnPrimary else Color(0xFF9CA3AF),
+                    tint = (if (isActive) OnPrimary else Color(0xFF9CA3AF))
+                        .copy(alpha = if (isDisabled) 0.38f else 1f),
                     modifier = Modifier.size(24.dp)
                 )
             }

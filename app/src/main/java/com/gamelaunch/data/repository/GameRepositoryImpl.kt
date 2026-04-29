@@ -159,7 +159,7 @@ class GameRepositoryImpl @Inject constructor(
     ): Game = Game(
         id = id,
         name = name,
-        coverUrl = cover?.url?.let { "https:" + it.replace("t_thumb", "t_cover_big") },
+        coverUrl = cover?.url?.let { "https:" + it.replace("t_thumb", "t_cover_big_2x") },
         releaseDate = releaseDate,
         platforms = platforms,
         genres = genres?.mapNotNull { it.name } ?: emptyList(),
@@ -177,7 +177,7 @@ class GameRepositoryImpl @Inject constructor(
             com.gamelaunch.domain.model.SimilarGame(
                 id = dto.id,
                 name = name,
-                coverUrl = dto.cover?.url?.let { "https:" + it.replace("t_thumb", "t_cover_big") }
+                coverUrl = dto.cover?.url?.let { "https:" + it.replace("t_thumb", "t_cover_big_2x") }
             )
         } ?: emptyList()
     )

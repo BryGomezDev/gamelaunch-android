@@ -52,7 +52,7 @@ fun GameDto.toGameEntity(): GameEntity = GameEntity(
 )
 
 private fun normalizeCoverUrl(url: String): String =
-    "https:" + url.replace("t_thumb", "t_cover_big")
+    "https:" + url.replace("t_thumb", "t_cover_big_2x")
 
 private fun normalizeScreenshotUrl(url: String): String =
     "https:" + url.replace("t_thumb", "t_screenshot_big")

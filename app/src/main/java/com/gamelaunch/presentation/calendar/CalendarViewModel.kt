@@ -31,12 +31,14 @@ data class CalendarUiState(
     val selectedDayReleases: List<Release> = emptyList(),
     val weekReleases: List<Release> = emptyList(),
     val featuredReleases: List<Release> = emptyList(),
+    val timelineReleases: List<Release> = emptyList(),
     val wishlistedIds: Set<Int> = emptySet(),
     val platformFilters: Set<Platform> = emptySet(),  // vacío = Todos
     val regionFilter: Region? = null,
     val isRefreshing: Boolean = false,
     val error: String? = null,
-    val syncDebugInfo: String = "Iniciando…"
+    val syncDebugInfo: String = "Iniciando…",
+    val language: String = "es"
 )
 
 @HiltViewModel
@@ -59,6 +61,13 @@ class CalendarViewModel @Inject constructor(
         // Carga inmediata para evitar pantalla vacía mientras DataStore lee del disco
         loadMonth(month)
         fetchMonthIfEmpty(month)
+
+        viewModelScope.launch {
+            dataStore.data
+                .map { prefs -> prefs[SettingsViewModel.LANGUAGE_KEY] ?: "es" }
+                .distinctUntilChanged()
+                .collect { lang -> _uiState.update { it.copy(language = lang) } }
+        }
 
         // Reactivo: observa cambios en favoritas de DataStore.
         // - Primera emisión: aplica el filtro guardado al arrancar
@@ -108,8 +117,9 @@ class CalendarViewModel @Inject constructor(
                             releases.first().copy(game = releases.first().game.copy(platforms = merged))
                         }
                         .sortedBy { it.date }
+                    val sevenDaysAgo = today.minusDays(6)
                     val featured = monthReleases
-                        .filter { it.game.rating != null }
+                        .filter { it.date >= sevenDaysAgo && it.date <= today && it.game.rating != null }
                         .groupBy { it.game.id }
                         .map { (_, releases) ->
                             val merged = releases.map { it.platform }.distinct()
@@ -137,9 +147,11 @@ class CalendarViewModel @Inject constructor(
                     val filters = _uiState.value.platformFilters
                     val releases = if (filters.isEmpty()) allReleases
                                    else allReleases.filter { it.platform in filters }
+                    val isRealMonth = month == YearMonth.now()
                     _uiState.update { s ->
                         s.copy(
                             releases = releases,
+                            timelineReleases = if (isRealMonth) releases else s.timelineReleases,
                             syncDebugInfo = "${releases.size} lanzamientos en Room",
                             selectedDayReleases = s.selectedDay
                                 ?.let { day -> releases.filter { it.date == day } }

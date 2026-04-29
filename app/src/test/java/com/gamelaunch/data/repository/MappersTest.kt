@@ -81,7 +81,7 @@ class MappersTest {
             genres = null, totalRating = null, summary = null
         )
         val entity = dto.toGameEntity()
-        assertEquals("https://images.igdb.com/igdb/image/upload/t_cover_big/abc.jpg", entity.coverUrl)
+        assertEquals("https://images.igdb.com/igdb/image/upload/t_cover_big_2x/abc.jpg", entity.coverUrl)
     }
 
     @Test

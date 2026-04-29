@@ -1,14 +1,24 @@
 package com.gamelaunch.presentation.detail
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.BookmarkAdd
 import androidx.compose.material3.*
@@ -18,17 +28,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.size.Size
+import androidx.compose.ui.platform.LocalContext
 import com.gamelaunch.domain.model.Game
 import com.gamelaunch.domain.model.Platform
 import com.gamelaunch.ui.components.KronosBottomNav
@@ -43,12 +61,14 @@ fun DetailScreen(
     gameId: Int,
     onBack: () -> Unit,
     onNavigateHome: () -> Unit = {},
+    onNavigate: (String) -> Unit = {},
     onGameClick: (Int) -> Unit = {},
     viewModel: DetailViewModel = hiltViewModel()
 ) {
     LaunchedEffect(gameId) { viewModel.loadGame(gameId) }
     val state by viewModel.uiState.collectAsState()
 
+    Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
         containerColor = Background,
         topBar = {
@@ -57,14 +77,7 @@ fun DetailScreen(
                     containerColor = Color(0xFF0A0A0A).copy(alpha = 0.40f),
                     titleContentColor = PrimaryFixed
                 ),
-                title = {
-                    Text(
-                        text = "Game Detail",
-                        fontFamily = ManropeFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
-                },
+                title = {},
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -86,12 +99,6 @@ fun DetailScreen(
                 }
             )
         },
-        bottomBar = {
-            KronosBottomNav(
-                currentRoute = "",
-                onNavigate = { route -> if (route == "home") onNavigateHome() }
-            )
-        }
     ) { innerPadding ->
         when {
             state.isLoading -> Box(
@@ -125,7 +132,7 @@ fun DetailScreen(
                         .fillMaxSize()
                         .padding(top = innerPadding.calculateTopPadding()),
                     contentPadding = PaddingValues(
-                        bottom = innerPadding.calculateBottomPadding() + 16.dp
+                        bottom = 100.dp
                     )
                 ) {
                     item { HeroSection(game = game) }
@@ -164,6 +171,14 @@ fun DetailScreen(
             }
         }
     }
+    KronosBottomNav(
+        currentRoute = "",
+        onNavigate = onNavigate,
+        modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .padding(bottom = 24.dp)
+    )
+    }
 }
 
 // ── Hero section ─────────────────────────────────────────────────────────────
@@ -180,7 +195,11 @@ private fun HeroSection(game: Game) {
             .height(420.dp)
     ) {
         AsyncImage(
-            model = game.coverUrl,
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(game.coverUrl)
+                .crossfade(true)
+                .size(Size.ORIGINAL)
+                .build(),
             contentDescription = game.name,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
@@ -249,6 +268,16 @@ private fun HeroSection(game: Game) {
 
             // Title — primera palabra blanca, resto PrimaryFixed italic
             val words = game.name.split(" ")
+            val titleFontSize = when {
+                game.name.length > 30 -> 28.sp
+                game.name.length > 20 -> 32.sp
+                else -> 56.sp
+            }
+            val titleLineHeight = when {
+                game.name.length > 30 -> 30.sp
+                game.name.length > 20 -> 34.sp
+                else -> 52.sp
+            }
             Text(
                 text = buildAnnotatedString {
                     withStyle(SpanStyle(color = Color.White)) {
@@ -267,11 +296,12 @@ private fun HeroSection(game: Game) {
                     }
                 },
                 fontFamily = ManropeFamily,
-                fontSize = 56.sp,
+                fontSize = titleFontSize,
                 fontWeight = FontWeight.Black,
                 letterSpacing = (-1).sp,
-                lineHeight = 52.sp,
-                maxLines = 2
+                lineHeight = titleLineHeight,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
             )
 
             // Genre + date chips
@@ -391,6 +421,61 @@ private fun BentoStatsGrid(
                         color = OnPrimary,
                         lineHeight = 22.sp
                     )
+                    val developer = game.developers.firstOrNull()
+                    val publisher = game.publishers.firstOrNull()?.takeIf { it != developer }
+                    if (developer != null || publisher != null) {
+                        Spacer(Modifier.height(12.dp))
+                        HorizontalDivider(
+                            thickness = 1.dp,
+                            color = OnPrimary.copy(alpha = 0.20f)
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        if (developer != null) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Code,
+                                    contentDescription = null,
+                                    tint = OnPrimary.copy(alpha = 0.70f),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = developer,
+                                    fontFamily = ManropeFamily,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = OnPrimary.copy(alpha = 0.90f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            if (publisher != null) Spacer(Modifier.height(4.dp))
+                        }
+                        if (publisher != null) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Business,
+                                    contentDescription = null,
+                                    tint = OnPrimary.copy(alpha = 0.70f),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = publisher,
+                                    fontFamily = ManropeFamily,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = OnPrimary.copy(alpha = 0.90f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -468,11 +553,15 @@ private fun SobreElJuego(
 
 // ── Capturas de pantalla ─────────────────────────────────────────────────────
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CapturasSection(
     screenshots: List<String>,
     modifier: Modifier = Modifier
 ) {
+    var showViewer by remember { mutableStateOf(false) }
+    var selectedIndex by remember { mutableIntStateOf(0) }
+
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -492,11 +581,12 @@ private fun CapturasSection(
                 .fillMaxWidth()
                 .aspectRatio(16f / 9f)
                 .clip(RoundedCornerShape(12.dp))
+                .clickable { selectedIndex = 0; showViewer = true }
         )
 
         if (screenshots.size > 1) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                screenshots.drop(1).take(2).forEach { url ->
+                screenshots.drop(1).take(2).forEachIndexed { idx, url ->
                     AsyncImage(
                         model = url,
                         contentDescription = null,
@@ -505,8 +595,127 @@ private fun CapturasSection(
                             .weight(1f)
                             .aspectRatio(16f / 9f)
                             .clip(RoundedCornerShape(12.dp))
+                            .clickable { selectedIndex = idx + 1; showViewer = true }
                     )
                 }
+            }
+        }
+
+        if (screenshots.size > 3) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                itemsIndexed(screenshots.drop(3)) { idx, url ->
+                    AsyncImage(
+                        model = url,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .width(160.dp)
+                            .height(100.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { selectedIndex = idx + 3; showViewer = true }
+                    )
+                }
+            }
+        }
+    }
+
+    if (showViewer) {
+        FullscreenImageViewer(
+            screenshots = screenshots,
+            initialIndex = selectedIndex,
+            onDismiss = { showViewer = false }
+        )
+    }
+}
+
+// ── Fullscreen image viewer ───────────────────────────────────────────────────
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun FullscreenImageViewer(
+    screenshots: List<String>,
+    initialIndex: Int,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = false
+        )
+    ) {
+        val pagerState = rememberPagerState(
+            initialPage = initialIndex,
+            pageCount = { screenshots.size }
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+        ) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize()
+            ) { page ->
+                var scale by remember { mutableFloatStateOf(1f) }
+                var offsetX by remember { mutableFloatStateOf(0f) }
+                var offsetY by remember { mutableFloatStateOf(0f) }
+
+                AsyncImage(
+                    model = screenshots[page],
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            detectTransformGestures { _, pan, zoom, _ ->
+                                val newScale = (scale * zoom).coerceIn(1f, 5f)
+                                scale = newScale
+                                if (newScale > 1f) {
+                                    offsetX += pan.x
+                                    offsetY += pan.y
+                                } else {
+                                    offsetX = 0f
+                                    offsetY = 0f
+                                }
+                            }
+                        }
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            translationX = offsetX
+                            translationY = offsetY
+                        }
+                )
+            }
+
+            // Indicador de página
+            Text(
+                text = "${pagerState.currentPage + 1}/${screenshots.size}",
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(16.dp)
+                    .background(Color.Black.copy(alpha = 0.50f), RoundedCornerShape(50.dp))
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+
+            // Botón cerrar
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "Cerrar",
+                    tint = Color.White
+                )
             }
         }
     }

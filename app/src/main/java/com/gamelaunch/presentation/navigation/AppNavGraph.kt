@@ -117,35 +117,112 @@ fun AppNavGraph(navController: NavHostController) {
                 onDayClick    = { date -> navController.navigate(Screen.DayReleases.createRoute(date)) },
                 onSearchClick = { navController.navigate(Screen.Search.route) },
                 currentRoute  = "home",
+                onAvatarClick = {
+                    navController.navigate(Screen.Profile.route) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true; restoreState = true
+                    }
+                },
                 onNavigate    = { route ->
                     when (route) {
                         "home"     -> { /* ya estamos aquí */ }
                         "timeline" -> { /* pantalla futura */ }
                         "milista"  -> navController.navigate(Screen.Wishlist.route) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                            launchSingleTop = true; restoreState = true
                         }
-                        "ajustes"  -> navController.navigate(Screen.Profile.route) {
+                        "ajustes"  -> navController.navigate(Screen.Settings.route) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                            launchSingleTop = true; restoreState = true
                         }
                     }
                 }
             )
         }
         composable(Screen.Search.route) {
-            SearchScreen(onGameClick = { navController.navigate(Screen.Detail.createRoute(it)) })
+            SearchScreen(
+                onGameClick = { navController.navigate(Screen.Detail.createRoute(it)) },
+                currentRoute = "search",
+                onNavigate = { route ->
+                    when (route) {
+                        "search"   -> { /* ya estamos aquí */ }
+                        "home"     -> navController.navigate(Screen.Calendar.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true; restoreState = true
+                        }
+                        "timeline" -> { /* pantalla futura */ }
+                        "milista"  -> navController.navigate(Screen.Wishlist.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true; restoreState = true
+                        }
+                        "ajustes"  -> navController.navigate(Screen.Settings.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true; restoreState = true
+                        }
+                    }
+                },
+                onAvatarClick = {
+                    navController.navigate(Screen.Profile.route) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true; restoreState = true
+                    }
+                }
+            )
         }
         composable(Screen.Wishlist.route) {
-            WishlistScreen(onGameClick = { navController.navigate(Screen.Detail.createRoute(it)) })
+            WishlistScreen(
+                onGameClick = { navController.navigate(Screen.Detail.createRoute(it)) },
+                onAvatarClick = {
+                    navController.navigate(Screen.Profile.route) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true; restoreState = true
+                    }
+                },
+                onNavigate = { route ->
+                    when (route) {
+                        "milista"  -> { /* ya estamos aquí */ }
+                        "home"     -> navController.navigate(Screen.Calendar.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true; restoreState = true
+                        }
+                        "timeline" -> { /* pantalla futura */ }
+                        "ajustes"  -> navController.navigate(Screen.Settings.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true; restoreState = true
+                        }
+                    }
+                }
+            )
         }
         composable(Screen.Settings.route) {
-            SettingsScreen()
+            SettingsScreen(onBack = { navController.popBackStack() })
         }
         composable(Screen.Profile.route) {
-            ProfileScreen()
+            ProfileScreen(
+                currentRoute = "",
+                onNavigate = { route ->
+                    when (route) {
+                        "home"     -> navController.navigate(Screen.Calendar.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true; restoreState = true
+                        }
+                        "timeline" -> { /* pantalla futura */ }
+                        "milista"  -> navController.navigate(Screen.Wishlist.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true; restoreState = true
+                        }
+                        "ajustes"  -> navController.navigate(Screen.Settings.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true; restoreState = true
+                        }
+                        "search"   -> navController.navigate(Screen.Search.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true; restoreState = true
+                        }
+                    }
+                },
+                onAvatarClick = { /* ya estamos en perfil */ }
+            )
         }
         composable(
             route = Screen.Detail.route,
@@ -157,6 +234,19 @@ fun AppNavGraph(navController: NavHostController) {
                 onBack = { navController.popBackStack() },
                 onNavigateHome = {
                     navController.popBackStack(Screen.Calendar.route, inclusive = false)
+                },
+                onNavigate = { route ->
+                    when (route) {
+                        "home"    -> navController.popBackStack(Screen.Calendar.route, inclusive = false)
+                        "milista" -> navController.navigate(Screen.Wishlist.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true; restoreState = true
+                        }
+                        "ajustes" -> navController.navigate(Screen.Settings.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true; restoreState = true
+                        }
+                    }
                 },
                 onGameClick = { navController.navigate(Screen.Detail.createRoute(it)) }
             )

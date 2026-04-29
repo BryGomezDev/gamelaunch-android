@@ -32,8 +32,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FabPosition
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -75,6 +76,7 @@ import com.gamelaunch.ui.components.GameCardLarge
 import com.gamelaunch.ui.components.GameCardSmall
 import com.gamelaunch.ui.components.HeroCardSkeleton
 import com.gamelaunch.ui.components.KronosBottomNav
+import com.gamelaunch.ui.components.KronosDrawer
 import com.gamelaunch.ui.components.KronosTopAppBar
 import com.gamelaunch.ui.theme.Background
 import com.gamelaunch.ui.theme.OnPrimary
@@ -117,17 +119,19 @@ fun CalendarScreen(
     onDayClick: (LocalDate) -> Unit,
     onSearchClick: () -> Unit,
     onNavigate: (String) -> Unit = {},
+    onAvatarClick: () -> Unit = {},
     currentRoute: String = "home",
     viewModel: CalendarViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
     val today = remember { LocalDate.now() }
     var showCalendar by remember { mutableStateOf(false) }
 
     val timelineDays = remember { (0L..13L).map { today.plusDays(it) } }
-    val timelineGames = remember(state.releases) { state.releases.toTimelineGames(today) }
+    val timelineGames = remember(state.timelineReleases) { state.timelineReleases.toTimelineGames(today) }
 
     // Pre-calculamos los índices de scroll para cada día con juegos
     val dayScrollIndices: Map<LocalDate, Int> = remember(timelineGames, state.error) {
@@ -145,20 +149,18 @@ fun CalendarScreen(
         }
     }
 
+    KronosDrawer(drawerState = drawerState, currentRoute = currentRoute, onNavigate = onNavigate) {
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             containerColor = Background,
             topBar = {
                 KronosTopAppBar(
-                    onMenuClick = {},
-                    onSearchClick = onSearchClick
+                    onMenuClick = { coroutineScope.launch { drawerState.open() } },
+                    onSearchClick = onSearchClick,
+                    onAvatarClick = onAvatarClick
                 )
             },
-            floatingActionButton = {
-                CalendarFab(onClick = { showCalendar = true })
-            },
-            floatingActionButtonPosition = FabPosition.End
-        ) { padding ->
+            ) { padding ->
             PullToRefreshBox(
                 isRefreshing = state.isRefreshing,
                 onRefresh = viewModel::refresh,
@@ -189,7 +191,7 @@ fun CalendarScreen(
                     // ── Sección: Grandes Lanzamientos ─────────────────────
                     item(key = "featured_label") {
                         Text(
-                            text = "GRANDES LANZAMIENTOS",
+                            text = "DESTACADOS · ÚLTIMOS 7 DÍAS",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = PrimaryFixed.copy(alpha = 0.70f),
@@ -210,7 +212,8 @@ fun CalendarScreen(
                         } else {
                             BigHeroCardsRow(
                                 releases = state.featuredReleases,
-                                onGameClick = onGameClick
+                                onGameClick = onGameClick,
+                                language = state.language
                             )
                         }
                     }
@@ -258,6 +261,14 @@ fun CalendarScreen(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 24.dp)
         )
+
+        CalendarFab(
+            onClick = { showCalendar = true },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 96.dp, end = 20.dp)
+        )
+    }
     }
 
     // ── BottomSheet de calendario ──────────────────────────────────────────────
@@ -285,7 +296,8 @@ fun CalendarScreen(
 @Composable
 private fun BigHeroCardsRow(
     releases: List<Release>,
-    onGameClick: (Int) -> Unit
+    onGameClick: (Int) -> Unit,
+    language: String
 ) {
     val configuration = LocalConfiguration.current
     val cardWidth = (configuration.screenWidthDp * 0.85).dp
@@ -302,7 +314,8 @@ private fun BigHeroCardsRow(
             BigHeroCard(
                 release = release,
                 onClick = { onGameClick(release.game.id) },
-                modifier = Modifier.width(cardWidth)
+                modifier = Modifier.width(cardWidth),
+                language = language
             )
         }
     }
@@ -312,22 +325,21 @@ private fun BigHeroCardsRow(
 private fun BigHeroCard(
     release: Release,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    language: String = "es"
 ) {
     val today = LocalDate.now()
     val game = release.game
 
-    val statusBadge = when {
-        release.date == today                 -> "HOY"
-        release.date <= today.plusDays(7)     -> "ESTA SEMANA"
-        else                                  -> null
-    }
+    val statusBadge = release.date
+        .format(DateTimeFormatter.ofPattern("d MMM", Locale.getDefault()))
+        .uppercase(Locale.getDefault())
     val platformBadge = when (game.platforms.size) {
         0    -> null
         1    -> game.platforms.first().displayName
         else -> "${game.platforms.size} plataformas"
     }
-    val description = game.summaryEs ?: game.summary
+    val description = if (language == "es") game.summaryEs else game.summary
 
     Box(
         modifier = modifier
